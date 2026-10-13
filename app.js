@@ -53,9 +53,7 @@ $('#login-form').addEventListener('submit', async (e) => {
     if (!r.ok) throw new Error();
     store.set('atelier_token', token);
     $('#login-msg').textContent = '';
-    $('#qui').value = who();
-$('#qui').addEventListener('change', (e) => store.set('atelier_qui', e.target.value));
-route();
+    route();
   } catch {
     token = null;
     $('#login-msg').textContent = 'Clé refusée : vérifie qu\'elle donne accès au dépôt RPG_Rogue_Art.';
@@ -105,10 +103,15 @@ const SORTS = {
   nom: (a, b) => a.element.localeCompare(b.element) || byType(a, b),
 };
 
+// recherche : sans accents ni majuscules, tous les mots doivent se trouver (nom, fichier, type, monde/combat,
+// biome en français et en anglais, tags, noms des images du jeu : « bridge », « slime »…)
+const norm = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+const haystack = (e) => e._h || (e._h = norm([e.element, e.fichier, e.type, e.ctx, e.biome, biomeName(e.biome), e.tags.join(' '), e.mots || ''].join(' ')));
 function filtered() {
-  const ty = $('#f-type').value, bi = $('#f-biome').value, s = $('#f-etat').value, t = $('#f-texte').value.trim().toLowerCase();
+  const ty = $('#f-type').value, bi = $('#f-biome').value, s = $('#f-etat').value;
+  const words = norm($('#f-texte').value).split(/\s+/).filter(Boolean);
   return data.elements.filter((e) => (!ty || e.type === ty) && (!bi || e.biome === bi) && (!s || state(e).etat === s)
-    && (!t || (e.element + ' ' + e.fichier + ' ' + biomeName(e.biome)).toLowerCase().includes(t)))
+    && words.every((w) => haystack(e).includes(w) || norm(state(e).etat).includes(w)))
     .sort(SORTS[$('#tri').value] || byType);
 }
 
@@ -128,12 +131,12 @@ function renderListe() {
   const html = list.slice(0, shown).map((e) => {
     const st = state(e);
     const n = st.commentaires.length;
-    const badges = (e.ctx ? `<span class="badge">${e.ctx}</span>` : '') + (e.biome ? `<span class="badge">${biomeName(e.biome)}</span>` : '');
+    const badges = (e.ctx && e.ctx !== 'interface' ? `<span class="badge">${e.ctx}</span>` : '') + (e.biome ? `<span class="badge">${biomeName(e.biome)}</span>` : '');
     const comments = openComments === e.id ? `<div class="comments">${st.commentaires.map((c) => `<p><b>${c.qui}</b> <span class="muted">${c.date}</span> — ${escapeHtml(c.texte)}</p>`).join('')}
       <form data-id="${e.id}"><input placeholder="Commentaire…" aria-label="Commentaire"><button>Ajouter</button></form></div>` : '';
-    return `<div class="row${changed[e.id] ? ' changed' : ''}${selected.has(e.id) ? ' sel' : ''}" data-id="${e.id}">
+    return `<div class="row ctx-${e.ctx || 'aucun'}${changed[e.id] ? ' changed' : ''}${selected.has(e.id) ? ' sel' : ''}" data-id="${e.id}">
       <div class="thumb" ${thumbStyle(e.v)}></div>
-      <div class="name"><b>${e.element}${badges}</b><small>${e.type} · ${e.fichier} · ${e.tags.length} tag(s) · ${e.date || ''}</small></div>
+      <div class="name"><b>${e.element}${badges}</b><small>${e.type} · ${e.fichier} · ${e.tags.length ? e.tags.length + " animation(s)" : "image fixe"} · ${e.date || ''}</small></div>
       <select class="etat e-${st.etat}" aria-label="État">${ETATS.map((x) => `<option${x === st.etat ? ' selected' : ''}>${x}</option>`).join('')}</select>
       <select class="prio" aria-label="Priorité">${PRIOS.map((x) => `<option value="${x}"${x === (st.priorite || '') ? ' selected' : ''}>${x || 'priorité'}</option>`).join('')}</select>
       <button class="com${n ? ' has' : ''}" title="Commentaires">${n || '+'}</button>${comments}</div>`;
@@ -142,6 +145,11 @@ function renderListe() {
   const nc = Object.keys(changed).length;
   $('#save').hidden = !nc;
   $('#save').textContent = `Enregistrer (${nc})`;
+  showSelection();
+}
+// la sélection ne redessine pas la liste (sinon le double-clic se perd) ; sa barre flotte en bas, sans rien décaler
+function showSelection() {
+  document.querySelectorAll('#liste .row').forEach((r) => r.classList.toggle('sel', selected.has(r.dataset.id)));
   $('#selbar').hidden = selected.size === 0;
   $('#selcount').textContent = `${selected.size} sélectionné(s)`;
 }
@@ -178,7 +186,7 @@ $('#liste').addEventListener('click', (ev) => {
     selected = new Set([id]);
     lastClicked = id;
   }
-  renderListe();
+  showSelection();
 });
 $('#liste').addEventListener('dblclick', (ev) => {
   const row = ev.target.closest('.row');
@@ -186,7 +194,7 @@ $('#liste').addEventListener('dblclick', (ev) => {
 });
 $('#sel-etat').addEventListener('change', (e) => { if (!e.target.value) return; selected.forEach((id) => change(id, { etat: e.target.value }, false)); e.target.value = ''; renderListe(); });
 $('#sel-prio').addEventListener('change', (e) => { if (e.target.value === '-') return; selected.forEach((id) => change(id, { priorite: e.target.value }, false)); e.target.value = '-'; renderListe(); });
-$('#sel-none').addEventListener('click', () => { selected.clear(); renderListe(); });
+$('#sel-none').addEventListener('click', () => { selected.clear(); showSelection(); });
 $('#liste').addEventListener('submit', (ev) => {
   ev.preventDefault();
   const id = ev.target.dataset.id, input = ev.target.querySelector('input');
@@ -238,7 +246,7 @@ async function openViewer(e) {
   viewer.t = 0; viewer.playing = true; $('#v-play').textContent = 'Pause';
   cancelAnimationFrame(viewer.raf);
   viewer.last = performance.now();
-  viewer.raf = requestAnimationFrame(drawViewer);
+  drawViewer(viewer.last);      // première image tout de suite, puis l'animation
 }
 function updateOpenLink() {
   const e = viewer.el;
