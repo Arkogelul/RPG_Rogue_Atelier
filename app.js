@@ -3,6 +3,12 @@
 const REPO = 'Arkogelul/RPG_Rogue_Art';
 const ETATS = ['Manquant', 'Provisoire', 'En cours', 'Terminé'];
 const PRIOS = ['', 'haute', 'normale', 'basse'];
+// les valeurs restent celles enregistrées dans etats.json ; seul l'affichage est en anglais
+const ETAT_EN = { Manquant: 'Missing', Provisoire: 'Placeholder', 'En cours': 'In progress', Terminé: 'Done' };
+const PRIO_EN = { '': 'no priority', haute: 'high', normale: 'normal', basse: 'low' };
+const QUI_EN = { graphiste: 'artist', programmeur: 'coder' };
+const whoEn = () => QUI_EN[who()] || who();
+const etatOpts = (cur) => ETATS.map((x) => `<option value="${x}"${x === cur ? ' selected' : ''}>${ETAT_EN[x]}</option>`).join('');
 const $ = (s) => document.querySelector(s);
 const store = {
   get(k) { try { return localStorage.getItem(k); } catch { return null; } },
@@ -17,7 +23,7 @@ async function gh(path, { method = 'GET', body, accept } = {}) {
     headers: { Authorization: 'Bearer ' + token, Accept: accept || 'application/vnd.github+json', 'Content-Type': 'application/json' },
     body: body ? JSON.stringify(body) : undefined,
   });
-  if (r.status === 401) { logout('La clé GitHub n\'est plus valide : reconnecte-toi.'); throw new Error('clé refusée'); }
+  if (r.status === 401) { logout('The GitHub key is no longer valid: sign in again.'); throw new Error('key refused'); }
   if (!r.ok && !(method === 'GET' && r.status === 404)) throw new Error(`GitHub ${r.status} : ${(await r.text()).slice(0, 200)}`);
   return r;
 }
@@ -47,7 +53,7 @@ window.addEventListener('hashchange', route);
 $('#login-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   token = $('#token').value.trim();
-  $('#login-msg').textContent = 'Vérification…';
+  $('#login-msg').textContent = 'Checking…';
   try {
     const r = await fetch(`https://api.github.com/repos/${REPO}`, { headers: { Authorization: 'Bearer ' + token } });
     if (!r.ok) throw new Error();
@@ -56,7 +62,7 @@ $('#login-form').addEventListener('submit', async (e) => {
     route();
   } catch {
     token = null;
-    $('#login-msg').textContent = 'Clé refusée : vérifie qu\'elle donne accès au dépôt RPG_Rogue_Art.';
+    $('#login-msg').textContent = 'Key refused: check that it gives access to the RPG_Rogue_Art repository.';
     $('#login-msg').className = 'msg err';
   }
 });
@@ -68,12 +74,11 @@ let data = null, etats = {}, atlasUrl = null, changed = {}, shown = 150, openCom
 let selected = new Set(), lastClicked = null, currentList = [];
 const PRIO_RANK = { haute: 0, normale: 1, basse: 2, '': 3 };
 const ETAT_RANK = Object.fromEntries(ETATS.map((x, i) => [x, i]));
-const BIOME_FR = { forest: 'forêt', meadow: 'prairie', jungle: 'jungle', swamp: 'marais', beach: 'plage', desert: 'désert', badlands: 'badlands', mountain: 'montagne', abyss: 'abysses' };
-const biomeName = (b) => BIOME_FR[b] || b;
+const biomeName = (b) => b;
 
 async function loadGraphismes() {
   if (data) return renderListe();
-  $('#g-msg').textContent = 'Chargement…';
+  $('#g-msg').textContent = 'Loading…';
   try {
     const [el, at, et] = await Promise.all([raw('_site/elements.json'), raw('_site/vignettes.png'), meta('_site/etats.json')]);
     data = await el.json();
@@ -81,15 +86,15 @@ async function loadGraphismes() {
     etats = et ? JSON.parse(decodeURIComponent(escape(atob(et.content.replace(/\n/g, ''))))) : {};
     const types = data.types.filter((t) => data.elements.some((e) => e.type === t));
     const biomes = [...new Set(data.elements.filter((e) => e.biome).sort((x, y) => x.rb - y.rb).map((e) => e.biome))];
-    $('#f-type').innerHTML = '<option value="">Tous les types</option>' + types.map((d) => `<option>${d}</option>`).join('');
-    $('#f-biome').innerHTML = '<option value="">Tous les biomes</option>' + biomes.map((d) => `<option value="${d}">${biomeName(d)}</option>`).join('');
-    $('#f-etat').innerHTML = '<option value="">Tous les états</option>' + ETATS.map((d) => `<option>${d}</option>`).join('');
-    $('#sel-etat').innerHTML = '<option value="">changer l\'état…</option>' + ETATS.map((d) => `<option>${d}</option>`).join('');
-    $('#sel-prio').innerHTML = '<option value="-">changer la priorité…</option>' + PRIOS.map((d) => `<option value="${d}">${d || 'aucune'}</option>`).join('');
+    $('#f-type').innerHTML = '<option value="">All types</option>' + types.map((d) => `<option>${d}</option>`).join('');
+    $('#f-biome').innerHTML = '<option value="">All biomes</option>' + biomes.map((d) => `<option value="${d}">${biomeName(d)}</option>`).join('');
+    $('#f-etat').innerHTML = '<option value="">All states</option>' + etatOpts();
+    $('#sel-etat').innerHTML = '<option value="">set state…</option>' + etatOpts();
+    $('#sel-prio').innerHTML = '<option value="-">set priority…</option>' + PRIOS.map((d) => `<option value="${d}">${PRIO_EN[d]}</option>`).join('');
     $('#tri').value = store.get('atelier_tri') || 'type';
     $('#g-msg').textContent = '';
     renderListe();
-  } catch (e) { $('#g-msg').textContent = 'Impossible de charger : ' + e.message; $('#g-msg').className = 'msg err'; }
+  } catch (e) { $('#g-msg').textContent = 'Could not load: ' + e.message; $('#g-msg').className = 'msg err'; }
 }
 
 const state = (e) => ({ etat: e.etat, priorite: '', commentaires: [], ...(etats[e.id] || {}), ...(changed[e.id] || {}) });
@@ -111,7 +116,7 @@ function filtered() {
   const ty = $('#f-type').value, bi = $('#f-biome').value, s = $('#f-etat').value;
   const words = norm($('#f-texte').value).split(/\s+/).filter(Boolean);
   return data.elements.filter((e) => (!ty || e.type === ty) && (!bi || e.biome === bi) && (!s || state(e).etat === s)
-    && words.every((w) => haystack(e).includes(w) || norm(state(e).etat).includes(w)))
+    && words.every((w) => haystack(e).includes(w) || norm(ETAT_EN[state(e).etat]).includes(w)))
     .sort(SORTS[$('#tri').value] || byType);
 }
 
@@ -127,31 +132,31 @@ function renderListe() {
   currentList = list;
   const counts = {};
   for (const e of list) counts[state(e).etat] = (counts[state(e).etat] || 0) + 1;
-  $('#compte').textContent = `${list.length} éléments · ` + ETATS.filter((x) => counts[x]).map((x) => `${counts[x]} ${x.toLowerCase()}`).join(' · ');
+  $('#compte').textContent = `${list.length} items · ` + ETATS.filter((x) => counts[x]).map((x) => `${counts[x]} ${ETAT_EN[x].toLowerCase()}`).join(' · ');
   const html = list.slice(0, shown).map((e) => {
     const st = state(e);
     const n = st.commentaires.length;
     const badges = (e.ctx && e.ctx !== 'interface' ? `<span class="badge">${e.ctx}</span>` : '') + (e.biome ? `<span class="badge">${biomeName(e.biome)}</span>` : '');
-    const comments = openComments === e.id ? `<div class="comments">${st.commentaires.map((c) => `<p><b>${c.qui}</b> <span class="muted">${c.date}</span> — ${escapeHtml(c.texte)}</p>`).join('')}
-      <form data-id="${e.id}"><input placeholder="Commentaire…" aria-label="Commentaire"><button>Ajouter</button></form></div>` : '';
+    const comments = openComments === e.id ? `<div class="comments">${st.commentaires.map((c) => `<p><b>${QUI_EN[c.qui] || c.qui}</b> <span class="muted">${c.date}</span> — ${escapeHtml(c.texte)}</p>`).join('')}
+      <form data-id="${e.id}"><input placeholder="Comment…" aria-label="Comment"><button>Add</button></form></div>` : '';
     return `<div class="row ctx-${e.ctx || 'aucun'}${changed[e.id] ? ' changed' : ''}${selected.has(e.id) ? ' sel' : ''}" data-id="${e.id}">
       <div class="thumb" ${thumbStyle(e.v)}></div>
-      <div class="name"><b>${e.element}${badges}</b><small>${e.type} · ${e.fichier} · ${e.tags.length ? e.tags.length + " animation(s)" : "image fixe"} · ${e.date || ''}</small></div>
-      <select class="etat e-${st.etat}" aria-label="État">${ETATS.map((x) => `<option${x === st.etat ? ' selected' : ''}>${x}</option>`).join('')}</select>
-      <select class="prio" aria-label="Priorité">${PRIOS.map((x) => `<option value="${x}"${x === (st.priorite || '') ? ' selected' : ''}>${x || 'priorité'}</option>`).join('')}</select>
-      <button class="com${n ? ' has' : ''}" title="Commentaires">${n || '+'}</button>${comments}</div>`;
+      <div class="name"><b>${e.element}${badges}</b><small>${e.type} · ${e.fichier} · ${e.tags.length ? e.tags.length + ' animation' + (e.tags.length > 1 ? 's' : '') : 'still image'} · ${e.date || ''}</small></div>
+      <select class="etat e-${st.etat}" aria-label="State">${etatOpts(st.etat)}</select>
+      <select class="prio" aria-label="Priority">${PRIOS.map((x) => `<option value="${x}"${x === (st.priorite || '') ? ' selected' : ''}>${x ? PRIO_EN[x] : 'priority'}</option>`).join('')}</select>
+      <button class="com${n ? ' has' : ''}" title="Comments">${n || '+'}</button>${comments}</div>`;
   }).join('');
-  $('#liste').innerHTML = html + (list.length > shown ? `<button class="more">Afficher plus (${list.length - shown})</button>` : '');
+  $('#liste').innerHTML = html + (list.length > shown ? `<button class="more">Show more (${list.length - shown})</button>` : '');
   const nc = Object.keys(changed).length;
   $('#save').hidden = !nc;
-  $('#save').textContent = `Enregistrer (${nc})`;
+  $('#save').textContent = `Save (${nc})`;
   showSelection();
 }
 // la sélection ne redessine pas la liste (sinon le double-clic se perd) ; sa barre flotte en bas, sans rien décaler
 function showSelection() {
   document.querySelectorAll('#liste .row').forEach((r) => r.classList.toggle('sel', selected.has(r.dataset.id)));
   $('#selbar').hidden = selected.size === 0;
-  $('#selcount').textContent = `${selected.size} sélectionné(s)`;
+  $('#selcount').textContent = `${selected.size} selected`;
 }
 const escapeHtml = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
@@ -207,18 +212,18 @@ $('#tri').addEventListener('change', () => { store.set('atelier_tri', $('#tri').
 
 $('#save').addEventListener('click', async () => {
   $('#save').disabled = true;
-  $('#g-msg').textContent = 'Enregistrement…';
+  $('#g-msg').textContent = 'Saving…';
   try {
     // relire juste avant d'écrire : on ne remplace que les éléments modifiés ici (pas ceux de l'autre)
     const cur = await meta('_site/etats.json');
     const remote = cur ? JSON.parse(decodeURIComponent(escape(atob(cur.content.replace(/\n/g, ''))))) : {};
     for (const [id, st] of Object.entries(changed)) remote[id] = st;
     const n = Object.keys(changed).length;
-    await put('_site/etats.json', utf8b64(JSON.stringify(remote, null, 1)), `États : ${n} élément(s) modifié(s) (${who()})`, cur && cur.sha);
+    await put('_site/etats.json', utf8b64(JSON.stringify(remote, null, 1)), `States: ${n} item(s) changed (${whoEn()})`, cur && cur.sha);
     etats = remote; changed = {};
-    $('#g-msg').textContent = 'Enregistré.';
+    $('#g-msg').textContent = 'Saved.';
     renderListe();
-  } catch (e) { $('#g-msg').textContent = 'Échec : ' + e.message; $('#g-msg').className = 'msg err'; }
+  } catch (e) { $('#g-msg').textContent = 'Failed: ' + e.message; $('#g-msg').className = 'msg err'; }
   $('#save').disabled = false;
 });
 window.addEventListener('beforeunload', (e) => { if (Object.keys(changed).length) { e.preventDefault(); e.returnValue = ''; } });
@@ -233,12 +238,12 @@ async function openViewer(e) {
   $('#v-tags').innerHTML = '';
   $('#viewer').hidden = false;
   const c = $('#v-canvas'); c.width = c.height = 0;
-  if (!e.anim) { $('#v-tags').textContent = 'Pas d\'image pour cet élément.'; return; }
+  if (!e.anim) { $('#v-tags').textContent = 'No image for this item.'; return; }
   try {
     const [m, p] = await Promise.all([raw(`_site/anim/${e.n}.json`), raw(`_site/anim/${e.n}.png`)]);
     viewer.meta = await m.json();
     viewer.img = await createImageBitmap(await p.blob());
-  } catch (err) { $('#v-tags').textContent = 'Impossible de charger : ' + err.message; return; }
+  } catch (err) { $('#v-tags').textContent = 'Could not load: ' + err.message; return; }
   const tags = Object.keys(viewer.meta.tags);
   viewer.tag = tags[0];
   $('#v-tags').innerHTML = tags.map((t) => `<button class="chip${t === viewer.tag ? ' on' : ''}" data-tag="${t}">${t} <span class="muted">${viewer.meta.tags[t].length}</span></button>`).join('');
@@ -275,7 +280,7 @@ $('#v-tags').addEventListener('click', (ev) => {
   viewer.tag = b.dataset.tag; viewer.t = 0; updateOpenLink();
   document.querySelectorAll('#v-tags .chip').forEach((x) => x.classList.toggle('on', x === b));
 });
-$('#v-play').addEventListener('click', () => { viewer.playing = !viewer.playing; $('#v-play').textContent = viewer.playing ? 'Pause' : 'Lecture'; });
+$('#v-play').addEventListener('click', () => { viewer.playing = !viewer.playing; $('#v-play').textContent = viewer.playing ? 'Pause' : 'Play'; });
 $('#v-close').addEventListener('click', () => { $('#viewer').hidden = true; });
 $('#viewer').addEventListener('click', (e) => { if (e.target.id === 'viewer') $('#viewer').hidden = true; });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') $('#viewer').hidden = true; });
@@ -285,20 +290,20 @@ let refs = null, cat = '', urls = {};
 
 async function loadReferences(force) {
   if (refs && !force) return renderRefs();
-  $('#r-msg').textContent = 'Chargement…';
+  $('#r-msg').textContent = 'Loading…';
   try {
     const tree = await (await gh(`/repos/${REPO}/git/trees/main?recursive=1`)).json();
     refs = tree.tree.filter((t) => t.type === 'blob' && t.path.startsWith('references/') && /\.(png|jpe?g|webp|gif)$/i.test(t.path))
       .map((t) => ({ path: t.path, sha: t.sha, cat: t.path.split('/')[1], name: t.path.split('/').pop() }));
-    $('#r-msg').textContent = refs.length ? '' : 'Aucune image pour l\'instant.';
+    $('#r-msg').textContent = refs.length ? '' : 'No images yet.';
     renderRefs();
-  } catch (e) { $('#r-msg').textContent = 'Impossible de charger : ' + e.message; $('#r-msg').className = 'msg err'; }
+  } catch (e) { $('#r-msg').textContent = 'Could not load: ' + e.message; $('#r-msg').className = 'msg err'; }
 }
 
 function renderRefs() {
   const cats = [...new Set(refs.map((r) => r.cat))].sort();
   $('#cat-list').innerHTML = cats.map((c) => `<option value="${c}">`).join('');
-  $('#cats').innerHTML = ['', ...cats].map((c) => `<button class="chip${c === cat ? ' on' : ''}" data-cat="${c}">${c || 'Toutes'} <span class="muted">${refs.filter((r) => !c || r.cat === c).length}</span></button>`).join('');
+  $('#cats').innerHTML = ['', ...cats].map((c) => `<button class="chip${c === cat ? ' on' : ''}" data-cat="${c}">${c || 'All'} <span class="muted">${refs.filter((r) => !c || r.cat === c).length}</span></button>`).join('');
   const list = refs.filter((r) => !cat || r.cat === cat);
   $('#galerie').innerHTML = list.map((r) => `<figure data-path="${r.path}"><img alt="${r.name}" data-path="${r.path}"><figcaption>${r.cat} · ${r.name}</figcaption></figure>`).join('');
   $('#galerie').querySelectorAll('img').forEach(async (img) => { img.src = await imageUrl(img.dataset.path); });
@@ -313,13 +318,13 @@ async function upload(files) {
   const c = ($('#cat-new').value.trim() || cat || 'divers').toLowerCase().replace(/[^a-z0-9_-]+/g, '_');
   const imgs = [...files].filter((f) => f.type.startsWith('image/'));
   for (const [i, f] of imgs.entries()) {
-    $('#r-msg').textContent = `Envoi ${i + 1}/${imgs.length} : ${f.name}…`;
+    $('#r-msg').textContent = `Uploading ${i + 1}/${imgs.length}: ${f.name}…`;
     const b64 = await new Promise((ok) => { const r = new FileReader(); r.onload = () => ok(r.result.split(',')[1]); r.readAsDataURL(f); });
     const name = f.name.toLowerCase().replace(/[^a-z0-9._-]+/g, '_');
-    try { await put(`references/${c}/${name}`, b64, `Référence ajoutée : ${c}/${name} (${who()})`); }
-    catch (e) { $('#r-msg').textContent = `Échec pour ${f.name} : ${e.message}`; $('#r-msg').className = 'msg err'; return; }
+    try { await put(`references/${c}/${name}`, b64, `Reference added: ${c}/${name} (${whoEn()})`); }
+    catch (e) { $('#r-msg').textContent = `Failed for ${f.name}: ${e.message}`; $('#r-msg').className = 'msg err'; return; }
   }
-  $('#r-msg').textContent = `${imgs.length} image(s) ajoutée(s) dans « ${c} ».`;
+  $('#r-msg').textContent = `${imgs.length} image(s) added to "${c}".`;
   cat = c;
   loadReferences(true);
 }
@@ -336,20 +341,20 @@ $('#galerie').addEventListener('click', async (e) => {
   lbPath = f.dataset.path;
   $('#lb-img').src = await imageUrl(lbPath);
   $('#lb-name').textContent = lbPath.replace('references/', '');
-  $('#lb-del').textContent = 'Supprimer';
+  $('#lb-del').textContent = 'Delete';
   $('#lightbox').hidden = false;
 });
 $('#lb-close').addEventListener('click', () => { $('#lightbox').hidden = true; });
 $('#lightbox').addEventListener('click', (e) => { if (e.target.id === 'lightbox') $('#lightbox').hidden = true; });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') $('#lightbox').hidden = true; });
 $('#lb-del').addEventListener('click', async () => {
-  if ($('#lb-del').textContent === 'Supprimer') { $('#lb-del').textContent = 'Confirmer la suppression'; return; }
+  if ($('#lb-del').textContent === 'Delete') { $('#lb-del').textContent = 'Confirm delete'; return; }
   const r = refs.find((x) => x.path === lbPath);
   try {
-    await gh(`/repos/${REPO}/contents/${enc(lbPath)}`, { method: 'DELETE', body: { message: `Référence supprimée : ${lbPath.replace('references/', '')} (${who()})`, sha: r.sha, branch: 'main' } });
+    await gh(`/repos/${REPO}/contents/${enc(lbPath)}`, { method: 'DELETE', body: { message: `Reference deleted: ${lbPath.replace('references/', '')} (${whoEn()})`, sha: r.sha, branch: 'main' } });
     $('#lightbox').hidden = true;
     loadReferences(true);
-  } catch (e) { $('#lb-name').textContent = 'Échec : ' + e.message; }
+  } catch (e) { $('#lb-name').textContent = 'Failed: ' + e.message; }
 });
 
 $('#qui').value = who();

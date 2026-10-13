@@ -1,38 +1,38 @@
 <!doctype html>
-<html lang="fr">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Atelier RPG Rogue</title>
-<link rel="stylesheet" href="style.css?v=4">
+<link rel="stylesheet" href="style.css?v=5">
 </head>
 <body>
 <header>
   <strong>Atelier RPG Rogue</strong>
   <nav>
-    <a href="#graphismes">Graphismes</a>
-    <a href="#references">Références</a>
-    <a href="#apercu">Aperçu</a>
+    <a href="#graphismes">Art</a>
+    <a href="#references">References</a>
+    <a href="#apercu">Live preview</a>
   </nav>
-  <select id="qui" aria-label="Qui travaille sur ce navigateur">
-    <option value="graphiste">je suis : graphiste</option>
-    <option value="programmeur">je suis : programmeur</option>
+  <select id="qui" aria-label="Who works in this browser">
+    <option value="graphiste">I am: the artist</option>
+    <option value="programmeur">I am: the coder</option>
   </select>
-  <button id="logout" class="link" hidden>Se déconnecter</button>
+  <button id="logout" class="link" hidden>Sign out</button>
 </header>
 
 <main>
-  <!-- connexion : les données sont dans le dépôt privé, rien n'est lisible sans clé -->
+  <!-- sign in: the data lives in the private repository, nothing is readable without a key -->
   <section id="login" hidden>
-    <h1>Connexion</h1>
-    <p>Les graphismes et les références sont dans le dépôt privé <code>RPG_Rogue_Art</code>. Colle une clé GitHub (une fois par navigateur) :</p>
+    <h1>Sign in</h1>
+    <p>The art and the references live in the private repository <code>RPG_Rogue_Art</code>. Paste a GitHub key (once per browser):</p>
     <ol>
-      <li><a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">Créer une clé</a> : Repository access → Only select repositories → <code>RPG_Rogue_Art</code>.</li>
-      <li>Permissions → Contents : <b>Read and write</b>. Generate token, puis copier.</li>
+      <li><a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">Create a key</a>: Repository access → Only select repositories → <code>RPG_Rogue_Art</code>.</li>
+      <li>Permissions → Contents: <b>Read and write</b>. Generate token, then copy it.</li>
     </ol>
     <form id="login-form">
       <input id="token" type="password" placeholder="github_pat_…" autocomplete="off">
-      <button type="submit">Se connecter</button>
+      <button type="submit">Sign in</button>
     </form>
     <p id="login-msg" class="msg"></p>
   </section>
@@ -41,27 +41,27 @@
     <div class="bar">
       <select id="f-type" aria-label="Type"></select>
       <select id="f-biome" aria-label="Biome"></select>
-      <select id="f-etat" aria-label="État"></select>
-      <input id="f-texte" type="search" placeholder="Chercher (bridge, monde, slime…)">
-      <label class="muted">Trier par
+      <select id="f-etat" aria-label="State"></select>
+      <input id="f-texte" type="search" placeholder="Search (bridge, world, slime…)">
+      <label class="muted">Sort by
         <select id="tri">
           <option value="type">type</option>
           <option value="biome">biome</option>
           <option value="date">date</option>
-          <option value="etat">état</option>
-          <option value="prio">priorité</option>
-          <option value="nom">nom</option>
+          <option value="etat">state</option>
+          <option value="prio">priority</option>
+          <option value="nom">name</option>
         </select>
       </label>
-      <button id="save" hidden>Enregistrer</button>
+      <button id="save" hidden>Save</button>
     </div>
     <div id="selbar" class="bar selbar" hidden>
       <b id="selcount"></b>
-      <select id="sel-etat" aria-label="État des éléments sélectionnés"></select>
-      <select id="sel-prio" aria-label="Priorité des éléments sélectionnés"></select>
-      <button id="sel-none" class="link">Tout désélectionner</button>
+      <select id="sel-etat" aria-label="State of the selected items"></select>
+      <select id="sel-prio" aria-label="Priority of the selected items"></select>
+      <button id="sel-none" class="link">Clear selection</button>
     </div>
-    <p class="muted small"><span id="compte"></span> · clic : sélectionner (Ctrl : ajouter, Maj : plage) · double-clic : voir en grand</p>
+    <p class="muted small"><span id="compte"></span> · click: select (Ctrl: add, Shift: range) · double-click: open large view</p>
     <p id="g-msg" class="msg"></p>
     <div id="liste"></div>
   </section>
@@ -69,13 +69,13 @@
   <section id="references" hidden>
     <div class="bar">
       <div id="cats" class="chips"></div>
-      <label class="upload">Ajouter des images
+      <label class="upload">Add images
         <input id="files" type="file" accept="image/*" multiple hidden>
       </label>
     </div>
     <div id="drop" class="drop">
-      Déposer des images ici · catégorie :
-      <input id="cat-new" list="cat-list" placeholder="battle, monde…">
+      Drop images here · category:
+      <input id="cat-new" list="cat-list" placeholder="battle, world…">
       <datalist id="cat-list"></datalist>
     </div>
     <p id="r-msg" class="msg"></p>
@@ -83,23 +83,23 @@
   </section>
 
   <section id="apercu" hidden>
-    <h1>Aperçu en direct</h1>
-    <p><a class="btn" href="https://github.com/Arkogelul/RPG_Rogue_Art/releases/latest/download/Installer_RPG_Rogue_Apercu.exe">Télécharger l'installateur</a>
+    <h1>Live preview</h1>
+    <p><a class="btn" href="https://github.com/Arkogelul/RPG_Rogue_Art/releases/latest/download/Installer_RPG_Rogue_Apercu.exe">Download the installer</a>
        <a href="https://github.com/Arkogelul/RPG_Rogue_Art/releases">Versions</a></p>
     <ol>
-      <li>Lancer l'installateur. Si Windows bloque : « Informations complémentaires » → « Exécuter quand même ».</li>
-      <li>S'il demande un jeton GitHub : suivre son lien (dépôt <code>RPG_Rogue_Art</code>, Contents : Read-only), coller le jeton.</li>
-      <li>Relancer Aseprite.</li>
-      <li>Ouvrir « RPG Rogue Aperçu » (Bureau). Il se met à jour tout seul.</li>
+      <li>Run the installer. If Windows blocks it: "More info" → "Run anyway".</li>
+      <li>If it asks for a GitHub token: follow its link (repository <code>RPG_Rogue_Art</code>, Contents: Read-only), paste the token.</li>
+      <li>Restart Aseprite.</li>
+      <li>Open "RPG Rogue Aperçu" (desktop shortcut). It updates itself.</li>
     </ol>
     <table>
-      <tr><td>A · R · X · Tab</td><td>ajouter / retirer de la sélection, vider, afficher la sélection</td></tr>
-      <tr><td>T · F</td><td>fixer un tag · suivre Aseprite</td></tr>
-      <tr><td>Espace · , .</td><td>pause · image précédente / suivante</td></tr>
-      <tr><td>S</td><td>vitesse 1, 1/2, 1/4</td></tr>
-      <tr><td>C · G · O · B</td><td>télé · grille et collisions · ombres · sol</td></tr>
-      <tr><td>+ -</td><td>zoom (1 pour juger la télé)</td></tr>
-      <tr><td>F11 · F12</td><td>plein écran · capture</td></tr>
+      <tr><td>A · R · X · Tab</td><td>add to / remove from selection, clear, show selection</td></tr>
+      <tr><td>T · F</td><td>pin a tag · follow Aseprite</td></tr>
+      <tr><td>Space · , .</td><td>pause · previous / next frame</td></tr>
+      <tr><td>S</td><td>speed 1, 1/2, 1/4</td></tr>
+      <tr><td>C · G · O · B</td><td>CRT · grid and collisions · shadows · ground</td></tr>
+      <tr><td>+ -</td><td>zoom (1 to judge the CRT)</td></tr>
+      <tr><td>F11 · F12</td><td>fullscreen · screenshot</td></tr>
     </table>
   </section>
 </main>
@@ -108,16 +108,16 @@
   <div class="v-box">
     <div class="v-head">
       <div><b id="v-name"></b> <span id="v-info" class="muted"></span></div>
-      <button id="v-close" class="link">Fermer</button>
+      <button id="v-close" class="link">Close</button>
     </div>
     <div class="v-stage"><canvas id="v-canvas"></canvas></div>
     <div id="v-tags" class="chips"></div>
     <div class="v-actions">
       <button id="v-play">Pause</button>
-      <select id="v-zoom" aria-label="Zoom"><option value="0">zoom auto</option><option>1</option><option>2</option><option>3</option><option>4</option><option>6</option><option>8</option></select>
-      <a id="v-open" class="btn" href="#">Ouvrir dans Aseprite</a>
+      <select id="v-zoom" aria-label="Zoom"><option value="0">auto zoom</option><option>1</option><option>2</option><option>3</option><option>4</option><option>6</option><option>8</option></select>
+      <a id="v-open" class="btn" href="#">Open in Aseprite</a>
     </div>
-    <p class="muted small">« Ouvrir dans Aseprite » demande l'aperçu 1.1 (ou plus) installé sur ce PC.</p>
+    <p class="muted small">"Open in Aseprite" needs the live preview 1.1 (or later) installed on this PC.</p>
   </div>
 </div>
 
@@ -125,11 +125,11 @@
   <img id="lb-img" alt="">
   <div class="lb-bar">
     <span id="lb-name"></span>
-    <button id="lb-del" class="danger">Supprimer</button>
-    <button id="lb-close">Fermer</button>
+    <button id="lb-del" class="danger">Delete</button>
+    <button id="lb-close">Close</button>
   </div>
 </div>
 
-<script src="app.js?v=4"></script>
+<script src="app.js?v=5"></script>
 </body>
 </html>

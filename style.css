@@ -67,13 +67,13 @@ td:first-child { font-family: Consolas, monospace; white-space: nowrap; }
   background: var(--panel); border: 1px solid var(--accent); border-radius: 8px; padding: 8px 12px; box-shadow: 0 4px 18px rgba(0, 0, 0, .25); }
 #liste { padding-bottom: 70px; }
 .row { user-select: none; cursor: default; }
-/* monde : teinte verte, combat : teinte rouge */
-.row.ctx-monde { background: color-mix(in srgb, #2e9e5b 9%, transparent); }
-.row.ctx-combat { background: color-mix(in srgb, #d0453a 11%, transparent); }
-.row.ctx-monde:hover { background: color-mix(in srgb, #2e9e5b 16%, transparent); }
-.row.ctx-combat:hover { background: color-mix(in srgb, #d0453a 18%, transparent); }
-.ctx-monde .badge:first-of-type { color: #2e9e5b; border-color: currentColor; }
-.ctx-combat .badge:first-of-type { color: #d0453a; border-color: currentColor; }
+/* world: green tint, battle: red tint */
+.row.ctx-world { background: color-mix(in srgb, #2e9e5b 9%, transparent); }
+.row.ctx-battle { background: color-mix(in srgb, #d0453a 11%, transparent); }
+.row.ctx-world:hover { background: color-mix(in srgb, #2e9e5b 16%, transparent); }
+.row.ctx-battle:hover { background: color-mix(in srgb, #d0453a 18%, transparent); }
+.ctx-world .badge:first-of-type { color: #2e9e5b; border-color: currentColor; }
+.ctx-battle .badge:first-of-type { color: #d0453a; border-color: currentColor; }
 .row.sel, .row.sel:hover { background: color-mix(in srgb, #2f6fd6 22%, transparent); box-shadow: inset 0 0 0 2px #2f6fd6; }
 .badge { font-size: 11px; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; margin-left: 4px; font-weight: 400; }
 #viewer { position: fixed; inset: 0; background: rgba(0, 0, 0, .7); display: flex; align-items: center; justify-content: center; z-index: 10; padding: 16px; }
