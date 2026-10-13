@@ -1,12 +1,11 @@
 // Atelier RPG Rogue : lit et écrit dans le dépôt privé des graphismes par l'API GitHub.
 // La page est publique, les données non : sans clé, rien n'est lisible.
 const REPO = 'Arkogelul/RPG_Rogue_Art';
-const ETATS = ['Manquant', 'Provisoire', 'En cours', 'Terminé'];
-const PRIOS = ['', 'haute', 'normale', 'basse'];
-// les valeurs restent celles enregistrées dans etats.json ; seul l'affichage est en anglais
-const ETAT_EN = { Manquant: 'Missing', Provisoire: 'Placeholder', 'En cours': 'In progress', Terminé: 'Done' };
-const PRIO_EN = { '': 'no priority', haute: 'high', normale: 'normal', basse: 'low' };
-const QUI_EN = { graphiste: 'artist', programmeur: 'coder' };
+const ETATS = ['Missing', 'Placeholder', 'In progress', 'Done'];
+const PRIOS = ['', 'high', 'normal', 'low'];
+const ETAT_EN = Object.fromEntries(ETATS.map((x) => [x, x]));
+const PRIO_EN = { '': 'no priority', high: 'high', normal: 'normal', low: 'low' };
+const QUI_EN = { artist: 'artist', coder: 'coder', graphiste: 'artist', programmeur: 'coder' };
 const whoEn = () => QUI_EN[who()] || who();
 const etatOpts = (cur) => ETATS.map((x) => `<option value="${x}"${x === cur ? ' selected' : ''}>${ETAT_EN[x]}</option>`).join('');
 const $ = (s) => document.querySelector(s);
@@ -34,7 +33,7 @@ async function put(path, base64, message, sha) {
   return (await gh(`/repos/${REPO}/contents/${enc(path)}`, { method: 'PUT', body: { message, content: base64, sha, branch: 'main' } })).json();
 }
 const utf8b64 = (s) => btoa(unescape(encodeURIComponent(s)));
-const who = () => store.get('atelier_qui') || 'graphiste';
+const who = () => QUI_EN[store.get('atelier_qui')] || 'artist';
 
 // ------------------------------------------------------------------ navigation
 const SECTIONS = ['graphismes', 'references', 'apercu'];
@@ -80,7 +79,7 @@ async function loadGraphismes() {
   if (data) return renderListe();
   $('#g-msg').textContent = 'Loading…';
   try {
-    const [el, at, et] = await Promise.all([raw('_site/elements.json'), raw('_site/vignettes.png'), meta('_site/etats.json')]);
+    const [el, at, et] = await Promise.all([raw('_site/elements.json'), raw('_site/thumbnails.png'), meta('_site/states.json')]);
     data = await el.json();
     atlasUrl = URL.createObjectURL(await at.blob());
     etats = et ? JSON.parse(decodeURIComponent(escape(atob(et.content.replace(/\n/g, ''))))) : {};
@@ -97,26 +96,26 @@ async function loadGraphismes() {
   } catch (e) { $('#g-msg').textContent = 'Could not load: ' + e.message; $('#g-msg').className = 'msg err'; }
 }
 
-const state = (e) => ({ etat: e.etat, priorite: '', commentaires: [], ...(etats[e.id] || {}), ...(changed[e.id] || {}) });
-const byType = (a, b) => a.rt - b.rt || a.rb - b.rb || a.fichier.localeCompare(b.fichier) || a.n - b.n;
+const state = (e) => ({ state: e.state, priority: '', comments: [], ...(etats[e.id] || {}), ...(changed[e.id] || {}) });
+const byType = (a, b) => a.rt - b.rt || a.rb - b.rb || a.file.localeCompare(b.file) || a.n - b.n;
 const SORTS = {
   type: byType,
   biome: (a, b) => a.rb - b.rb || byType(a, b),
   date: (a, b) => (state(b).date || b.date || '').localeCompare(state(a).date || a.date || '') || byType(a, b),
-  etat: (a, b) => ETAT_RANK[state(a).etat] - ETAT_RANK[state(b).etat] || byType(a, b),
-  prio: (a, b) => PRIO_RANK[state(a).priorite || ''] - PRIO_RANK[state(b).priorite || ''] || byType(a, b),
+  etat: (a, b) => ETAT_RANK[state(a).state] - ETAT_RANK[state(b).state] || byType(a, b),
+  prio: (a, b) => PRIO_RANK[state(a).priority || ''] - PRIO_RANK[state(b).priority || ''] || byType(a, b),
   nom: (a, b) => a.element.localeCompare(b.element) || byType(a, b),
 };
 
 // recherche : sans accents ni majuscules, tous les mots doivent se trouver (nom, fichier, type, monde/combat,
 // biome en français et en anglais, tags, noms des images du jeu : « bridge », « slime »…)
 const norm = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-const haystack = (e) => e._h || (e._h = norm([e.element, e.fichier, e.type, e.ctx, e.biome, biomeName(e.biome), e.tags.join(' '), e.mots || ''].join(' ')));
+const haystack = (e) => e._h || (e._h = norm([e.element, e.file, e.type, e.ctx, e.biome, biomeName(e.biome), e.tags.join(' '), e.words || ''].join(' ')));
 function filtered() {
   const ty = $('#f-type').value, bi = $('#f-biome').value, s = $('#f-etat').value;
   const words = norm($('#f-texte').value).split(/\s+/).filter(Boolean);
-  return data.elements.filter((e) => (!ty || e.type === ty) && (!bi || e.biome === bi) && (!s || state(e).etat === s)
-    && words.every((w) => haystack(e).includes(w) || norm(ETAT_EN[state(e).etat]).includes(w)))
+  return data.elements.filter((e) => (!ty || e.type === ty) && (!bi || e.biome === bi) && (!s || state(e).state === s)
+    && words.every((w) => haystack(e).includes(w) || norm(ETAT_EN[state(e).state]).includes(w)))
     .sort(SORTS[$('#tri').value] || byType);
 }
 
@@ -131,19 +130,19 @@ function renderListe() {
   const list = filtered();
   currentList = list;
   const counts = {};
-  for (const e of list) counts[state(e).etat] = (counts[state(e).etat] || 0) + 1;
+  for (const e of list) counts[state(e).state] = (counts[state(e).state] || 0) + 1;
   $('#compte').textContent = `${list.length} items · ` + ETATS.filter((x) => counts[x]).map((x) => `${counts[x]} ${ETAT_EN[x].toLowerCase()}`).join(' · ');
   const html = list.slice(0, shown).map((e) => {
     const st = state(e);
-    const n = st.commentaires.length;
+    const n = st.comments.length;
     const badges = (e.ctx && e.ctx !== 'interface' ? `<span class="badge">${e.ctx}</span>` : '') + (e.biome ? `<span class="badge">${biomeName(e.biome)}</span>` : '');
-    const comments = openComments === e.id ? `<div class="comments">${st.commentaires.map((c) => `<p><b>${QUI_EN[c.qui] || c.qui}</b> <span class="muted">${c.date}</span> — ${escapeHtml(c.texte)}</p>`).join('')}
+    const comments = openComments === e.id ? `<div class="comments">${st.comments.map((c) => `<p><b>${QUI_EN[c.who] || c.who}</b> <span class="muted">${c.date}</span> — ${escapeHtml(c.text)}</p>`).join('')}
       <form data-id="${e.id}"><input placeholder="Comment…" aria-label="Comment"><button>Add</button></form></div>` : '';
     return `<div class="row ctx-${e.ctx || 'aucun'}${changed[e.id] ? ' changed' : ''}${selected.has(e.id) ? ' sel' : ''}" data-id="${e.id}">
       <div class="thumb" ${thumbStyle(e.v)}></div>
-      <div class="name"><b>${e.element}${badges}</b><small>${e.type} · ${e.fichier} · ${e.tags.length ? e.tags.length + ' animation' + (e.tags.length > 1 ? 's' : '') : 'still image'} · ${e.date || ''}</small></div>
-      <select class="etat e-${st.etat}" aria-label="State">${etatOpts(st.etat)}</select>
-      <select class="prio" aria-label="Priority">${PRIOS.map((x) => `<option value="${x}"${x === (st.priorite || '') ? ' selected' : ''}>${x ? PRIO_EN[x] : 'priority'}</option>`).join('')}</select>
+      <div class="name"><b>${e.element}${badges}</b><small>${e.type} · ${e.file} · ${e.tags.length ? e.tags.length + ' animation' + (e.tags.length > 1 ? 's' : '') : 'still image'} · ${e.date || ''}</small></div>
+      <select class="etat e-${st.state.replace(' ', '')}" aria-label="State">${etatOpts(st.state)}</select>
+      <select class="prio" aria-label="Priority">${PRIOS.map((x) => `<option value="${x}"${x === (st.priority || '') ? ' selected' : ''}>${x ? PRIO_EN[x] : 'priority'}</option>`).join('')}</select>
       <button class="com${n ? ' has' : ''}" title="Comments">${n || '+'}</button>${comments}</div>`;
   }).join('');
   $('#liste').innerHTML = html + (list.length > shown ? `<button class="more">Show more (${list.length - shown})</button>` : '');
@@ -168,8 +167,8 @@ function change(id, patch, render = true) {
 $('#liste').addEventListener('change', (ev) => {
   const row = ev.target.closest('.row');
   if (!row) return;
-  if (ev.target.classList.contains('etat')) change(row.dataset.id, { etat: ev.target.value });
-  if (ev.target.classList.contains('prio')) change(row.dataset.id, { priorite: ev.target.value });
+  if (ev.target.classList.contains('etat')) change(row.dataset.id, { state: ev.target.value });
+  if (ev.target.classList.contains('prio')) change(row.dataset.id, { priority: ev.target.value });
 });
 // sélection : clic = celui-ci, Ctrl = ajouter / retirer, Maj = plage
 $('#liste').addEventListener('click', (ev) => {
@@ -197,15 +196,15 @@ $('#liste').addEventListener('dblclick', (ev) => {
   const row = ev.target.closest('.row');
   if (row && !ev.target.closest('select, input, button, form')) openViewer(data.elements.find((x) => x.id === row.dataset.id));
 });
-$('#sel-etat').addEventListener('change', (e) => { if (!e.target.value) return; selected.forEach((id) => change(id, { etat: e.target.value }, false)); e.target.value = ''; renderListe(); });
-$('#sel-prio').addEventListener('change', (e) => { if (e.target.value === '-') return; selected.forEach((id) => change(id, { priorite: e.target.value }, false)); e.target.value = '-'; renderListe(); });
+$('#sel-etat').addEventListener('change', (e) => { if (!e.target.value) return; selected.forEach((id) => change(id, { state: e.target.value }, false)); e.target.value = ''; renderListe(); });
+$('#sel-prio').addEventListener('change', (e) => { if (e.target.value === '-') return; selected.forEach((id) => change(id, { priority: e.target.value }, false)); e.target.value = '-'; renderListe(); });
 $('#sel-none').addEventListener('click', () => { selected.clear(); showSelection(); });
 $('#liste').addEventListener('submit', (ev) => {
   ev.preventDefault();
   const id = ev.target.dataset.id, input = ev.target.querySelector('input');
   if (!input.value.trim()) return;
   const st = state(data.elements.find((x) => x.id === id));
-  change(id, { commentaires: [...st.commentaires, { qui: who(), date: new Date().toISOString().slice(0, 10), texte: input.value.trim() }] });
+  change(id, { comments: [...st.comments, { who: whoEn(), date: new Date().toISOString().slice(0, 10), text: input.value.trim() }] });
 });
 ['#f-type', '#f-biome', '#f-etat', '#f-texte'].forEach((s) => $(s).addEventListener('input', () => { shown = 150; renderListe(); }));
 $('#tri').addEventListener('change', () => { store.set('atelier_tri', $('#tri').value); renderListe(); });
@@ -215,11 +214,11 @@ $('#save').addEventListener('click', async () => {
   $('#g-msg').textContent = 'Saving…';
   try {
     // relire juste avant d'écrire : on ne remplace que les éléments modifiés ici (pas ceux de l'autre)
-    const cur = await meta('_site/etats.json');
+    const cur = await meta('_site/states.json');
     const remote = cur ? JSON.parse(decodeURIComponent(escape(atob(cur.content.replace(/\n/g, ''))))) : {};
     for (const [id, st] of Object.entries(changed)) remote[id] = st;
     const n = Object.keys(changed).length;
-    await put('_site/etats.json', utf8b64(JSON.stringify(remote, null, 1)), `States: ${n} item(s) changed (${whoEn()})`, cur && cur.sha);
+    await put('_site/states.json', utf8b64(JSON.stringify(remote, null, 1)), `States: ${n} item(s) changed (${whoEn()})`, cur && cur.sha);
     etats = remote; changed = {};
     $('#g-msg').textContent = 'Saved.';
     renderListe();
@@ -233,8 +232,8 @@ const viewer = { el: null, img: null, meta: null, tag: null, playing: true, t: 0
 async function openViewer(e) {
   viewer.el = e; viewer.meta = null;
   $('#v-name').textContent = e.element;
-  $('#v-info').textContent = `${e.type} · ${e.fichier}`;
-  $('#v-open').href = `rpgrogue://ouvrir?f=${encodeURIComponent(e.fichier)}&e=${encodeURIComponent(e.element)}`;
+  $('#v-info').textContent = `${e.type} · ${e.file}`;
+  $('#v-open').href = `rpgrogue://open?f=${encodeURIComponent(e.file)}&e=${encodeURIComponent(e.element)}`;
   $('#v-tags').innerHTML = '';
   $('#viewer').hidden = false;
   const c = $('#v-canvas'); c.width = c.height = 0;
@@ -255,7 +254,7 @@ async function openViewer(e) {
 }
 function updateOpenLink() {
   const e = viewer.el;
-  $('#v-open').href = `rpgrogue://ouvrir?f=${encodeURIComponent(e.fichier)}&e=${encodeURIComponent(e.element)}&t=${encodeURIComponent(viewer.tag || '')}`;
+  $('#v-open').href = `rpgrogue://open?f=${encodeURIComponent(e.file)}&e=${encodeURIComponent(e.element)}&t=${encodeURIComponent(viewer.tag || '')}`;
 }
 function drawViewer(now) {
   if ($('#viewer').hidden || !viewer.meta) return;

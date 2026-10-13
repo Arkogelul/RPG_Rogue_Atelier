@@ -43,7 +43,7 @@ td:first-child { font-family: Consolas, monospace; white-space: nowrap; }
 .comments p { margin: 0; }
 .comments form { display: flex; gap: 6px; }
 .comments input { flex: 1; }
-.e-Manquant { color: var(--danger); } .e-Provisoire { color: #c27c00; } .e-Terminé { color: var(--accent); }
+.e-Missing { color: var(--danger); } .e-Placeholder { color: #c27c00; } .e-Done { color: var(--accent); }
 .more { margin: 12px auto; display: block; }
 
 /* références : colonnes façon Pinterest */

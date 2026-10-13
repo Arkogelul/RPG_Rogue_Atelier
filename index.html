@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Atelier RPG Rogue</title>
-<link rel="stylesheet" href="style.css?v=5">
+<link rel="stylesheet" href="style.css?v=6">
 </head>
 <body>
 <header>
@@ -15,8 +15,8 @@
     <a href="#apercu">Live preview</a>
   </nav>
   <select id="qui" aria-label="Who works in this browser">
-    <option value="graphiste">I am: the artist</option>
-    <option value="programmeur">I am: the coder</option>
+    <option value="artist">I am: the artist</option>
+    <option value="coder">I am: the coder</option>
   </select>
   <button id="logout" class="link" hidden>Sign out</button>
 </header>
@@ -90,7 +90,7 @@
       <li>Run the installer. If Windows blocks it: "More info" → "Run anyway".</li>
       <li>If it asks for a GitHub token: follow its link (repository <code>RPG_Rogue_Art</code>, Contents: Read-only), paste the token.</li>
       <li>Restart Aseprite.</li>
-      <li>Open "RPG Rogue Aperçu" (desktop shortcut). It updates itself.</li>
+      <li>Open "RPG Rogue Preview" (desktop shortcut). It updates itself.</li>
     </ol>
     <table>
       <tr><td>A · R · X · Tab</td><td>add to / remove from selection, clear, show selection</td></tr>
@@ -117,7 +117,7 @@
       <select id="v-zoom" aria-label="Zoom"><option value="0">auto zoom</option><option>1</option><option>2</option><option>3</option><option>4</option><option>6</option><option>8</option></select>
       <a id="v-open" class="btn" href="#">Open in Aseprite</a>
     </div>
-    <p class="muted small">"Open in Aseprite" needs the live preview 1.1 (or later) installed on this PC.</p>
+    <p class="muted small">"Open in Aseprite" needs the live preview 1.2 (or later) installed on this PC. If Aseprite is already open, the file opens in it.</p>
   </div>
 </div>
 
@@ -130,6 +130,6 @@
   </div>
 </div>
 
-<script src="app.js?v=5"></script>
+<script src="app.js?v=6"></script>
 </body>
 </html>
