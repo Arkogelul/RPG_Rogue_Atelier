@@ -1,4 +1,5 @@
 :root { --bg: #f6f7f6; --panel: #fff; --fg: #1d2420; --muted: #5d6862; --line: #d6dcd8; --accent: #1f7a4d; --danger: #b3261e; }
+[hidden] { display: none !important; }
 @media (prefers-color-scheme: dark) {
   :root { --bg: #151a17; --panel: #1c231f; --fg: #e3e9e5; --muted: #9aa69f; --line: #2c3530; --accent: #5cc48f; --danger: #ff8a80; color-scheme: dark; }
 }
