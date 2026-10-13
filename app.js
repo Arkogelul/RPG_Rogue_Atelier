@@ -66,7 +66,12 @@ function logout(msg) { token = null; store.set('atelier_token', null); route(); 
 $('#logout').addEventListener('click', () => logout());
 
 // ------------------------------------------------------------------ graphismes
-let data = null, etats = {}, etatsSha = null, atlasUrl = null, changed = {}, shown = 120, openComments = null;
+let data = null, etats = {}, atlasUrl = null, changed = {}, shown = 150, openComments = null;
+let selected = new Set(), lastClicked = null, currentList = [];
+const PRIO_RANK = { haute: 0, normale: 1, basse: 2, '': 3 };
+const ETAT_RANK = Object.fromEntries(ETATS.map((x, i) => [x, i]));
+const BIOME_FR = { forest: 'forêt', meadow: 'prairie', jungle: 'jungle', swamp: 'marais', beach: 'plage', desert: 'désert', badlands: 'badlands', mountain: 'montagne', abyss: 'abysses' };
+const biomeName = (b) => BIOME_FR[b] || b;
 
 async function loadGraphismes() {
   if (data) return renderListe();
@@ -75,56 +80,77 @@ async function loadGraphismes() {
     const [el, at, et] = await Promise.all([raw('_site/elements.json'), raw('_site/vignettes.png'), meta('_site/etats.json')]);
     data = await el.json();
     atlasUrl = URL.createObjectURL(await at.blob());
-    etatsSha = et ? et.sha : null;
     etats = et ? JSON.parse(decodeURIComponent(escape(atob(et.content.replace(/\n/g, ''))))) : {};
-    const dossiers = [...new Set(data.elements.map((e) => e.dossier))];
-    $('#f-dossier').innerHTML = '<option value="">Tous les dossiers</option>' + dossiers.map((d) => `<option>${d}</option>`).join('');
+    const types = data.types.filter((t) => data.elements.some((e) => e.type === t));
+    const biomes = [...new Set(data.elements.filter((e) => e.biome).sort((x, y) => x.rb - y.rb).map((e) => e.biome))];
+    $('#f-type').innerHTML = '<option value="">Tous les types</option>' + types.map((d) => `<option>${d}</option>`).join('');
+    $('#f-biome').innerHTML = '<option value="">Tous les biomes</option>' + biomes.map((d) => `<option value="${d}">${biomeName(d)}</option>`).join('');
     $('#f-etat').innerHTML = '<option value="">Tous les états</option>' + ETATS.map((d) => `<option>${d}</option>`).join('');
+    $('#sel-etat').innerHTML = '<option value="">changer l\'état…</option>' + ETATS.map((d) => `<option>${d}</option>`).join('');
+    $('#sel-prio').innerHTML = '<option value="-">changer la priorité…</option>' + PRIOS.map((d) => `<option value="${d}">${d || 'aucune'}</option>`).join('');
+    $('#tri').value = store.get('atelier_tri') || 'type';
     $('#g-msg').textContent = '';
     renderListe();
   } catch (e) { $('#g-msg').textContent = 'Impossible de charger : ' + e.message; $('#g-msg').className = 'msg err'; }
 }
 
 const state = (e) => ({ etat: e.etat, priorite: '', commentaires: [], ...(etats[e.id] || {}), ...(changed[e.id] || {}) });
+const byType = (a, b) => a.rt - b.rt || a.rb - b.rb || a.fichier.localeCompare(b.fichier) || a.n - b.n;
+const SORTS = {
+  type: byType,
+  biome: (a, b) => a.rb - b.rb || byType(a, b),
+  date: (a, b) => (state(b).date || b.date || '').localeCompare(state(a).date || a.date || '') || byType(a, b),
+  etat: (a, b) => ETAT_RANK[state(a).etat] - ETAT_RANK[state(b).etat] || byType(a, b),
+  prio: (a, b) => PRIO_RANK[state(a).priorite || ''] - PRIO_RANK[state(b).priorite || ''] || byType(a, b),
+  nom: (a, b) => a.element.localeCompare(b.element) || byType(a, b),
+};
 
 function filtered() {
-  const d = $('#f-dossier').value, s = $('#f-etat').value, t = $('#f-texte').value.trim().toLowerCase();
-  return data.elements.filter((e) => (!d || e.dossier === d) && (!s || state(e).etat === s)
-    && (!t || (e.element + ' ' + e.fichier).toLowerCase().includes(t)));
+  const ty = $('#f-type').value, bi = $('#f-biome').value, s = $('#f-etat').value, t = $('#f-texte').value.trim().toLowerCase();
+  return data.elements.filter((e) => (!ty || e.type === ty) && (!bi || e.biome === bi) && (!s || state(e).etat === s)
+    && (!t || (e.element + ' ' + e.fichier + ' ' + biomeName(e.biome)).toLowerCase().includes(t)))
+    .sort(SORTS[$('#tri').value] || byType);
+}
+
+function thumbStyle(v) {
+  if (!v) return '';
+  const [aw, ah] = data.atlas;
+  const k = Math.max(1, Math.floor(48 / Math.max(v[2], v[3])));
+  return `style="background-image:url(${atlasUrl});background-size:${aw * k}px ${ah * k}px;background-position:-${v[0] * k}px -${v[1] * k}px;width:${v[2] * k}px;height:${v[3] * k}px"`;
 }
 
 function renderListe() {
   const list = filtered();
+  currentList = list;
   const counts = {};
   for (const e of list) counts[state(e).etat] = (counts[state(e).etat] || 0) + 1;
   $('#compte').textContent = `${list.length} éléments · ` + ETATS.filter((x) => counts[x]).map((x) => `${counts[x]} ${x.toLowerCase()}`).join(' · ');
-  const [aw, ah] = data.atlas;
   const html = list.slice(0, shown).map((e) => {
     const st = state(e);
-    const v = e.v;
-    const scale = v ? Math.max(1, Math.floor(48 / Math.max(v[2], v[3]))) : 1;
-    const thumb = v ? `style="background-image:url(${atlasUrl});background-size:${aw * scale}px ${ah * scale}px;background-position:-${v[0] * scale}px -${v[1] * scale}px;width:${v[2] * scale}px;height:${v[3] * scale}px"` : '';
     const n = st.commentaires.length;
+    const badges = (e.ctx ? `<span class="badge">${e.ctx}</span>` : '') + (e.biome ? `<span class="badge">${biomeName(e.biome)}</span>` : '');
     const comments = openComments === e.id ? `<div class="comments">${st.commentaires.map((c) => `<p><b>${c.qui}</b> <span class="muted">${c.date}</span> — ${escapeHtml(c.texte)}</p>`).join('')}
       <form data-id="${e.id}"><input placeholder="Commentaire…" aria-label="Commentaire"><button>Ajouter</button></form></div>` : '';
-    return `<div class="row${changed[e.id] ? ' changed' : ''}" data-id="${e.id}">
-      <div class="thumb" ${thumb}></div>
-      <div class="name"><b>${e.element}</b><small>${e.fichier} · ${e.tags.length} tag(s) · ${e.images} image(s)</small></div>
+    return `<div class="row${changed[e.id] ? ' changed' : ''}${selected.has(e.id) ? ' sel' : ''}" data-id="${e.id}">
+      <div class="thumb" ${thumbStyle(e.v)}></div>
+      <div class="name"><b>${e.element}${badges}</b><small>${e.type} · ${e.fichier} · ${e.tags.length} tag(s) · ${e.date || ''}</small></div>
       <select class="etat e-${st.etat}" aria-label="État">${ETATS.map((x) => `<option${x === st.etat ? ' selected' : ''}>${x}</option>`).join('')}</select>
-      <select class="prio" aria-label="Priorité">${PRIOS.map((x) => `<option value="${x}"${x === st.priorite ? ' selected' : ''}>${x || 'priorité'}</option>`).join('')}</select>
+      <select class="prio" aria-label="Priorité">${PRIOS.map((x) => `<option value="${x}"${x === (st.priorite || '') ? ' selected' : ''}>${x || 'priorité'}</option>`).join('')}</select>
       <button class="com${n ? ' has' : ''}" title="Commentaires">${n || '+'}</button>${comments}</div>`;
   }).join('');
   $('#liste').innerHTML = html + (list.length > shown ? `<button class="more">Afficher plus (${list.length - shown})</button>` : '');
   const nc = Object.keys(changed).length;
   $('#save').hidden = !nc;
   $('#save').textContent = `Enregistrer (${nc})`;
+  $('#selbar').hidden = selected.size === 0;
+  $('#selcount').textContent = `${selected.size} sélectionné(s)`;
 }
 const escapeHtml = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
-function change(id, patch) {
+function change(id, patch, render = true) {
   const e = data.elements.find((x) => x.id === id);
-  changed[id] = { ...state(e), ...patch };
-  renderListe();
+  changed[id] = { ...state(e), ...patch, date: new Date().toISOString().slice(0, 10) };
+  if (render) renderListe();
 }
 $('#liste').addEventListener('change', (ev) => {
   const row = ev.target.closest('.row');
@@ -132,19 +158,44 @@ $('#liste').addEventListener('change', (ev) => {
   if (ev.target.classList.contains('etat')) change(row.dataset.id, { etat: ev.target.value });
   if (ev.target.classList.contains('prio')) change(row.dataset.id, { priorite: ev.target.value });
 });
+// sélection : clic = celui-ci, Ctrl = ajouter / retirer, Maj = plage
 $('#liste').addEventListener('click', (ev) => {
-  if (ev.target.classList.contains('more')) { shown += 200; renderListe(); }
-  if (ev.target.classList.contains('com')) { const id = ev.target.closest('.row').dataset.id; openComments = openComments === id ? null : id; renderListe(); }
+  if (ev.target.classList.contains('more')) { shown += 300; renderListe(); return; }
+  const row = ev.target.closest('.row');
+  if (!row) return;
+  if (ev.target.classList.contains('com')) { openComments = openComments === row.dataset.id ? null : row.dataset.id; renderListe(); return; }
+  if (ev.target.closest('select, input, button, form')) return;
+  const id = row.dataset.id;
+  if (ev.shiftKey && lastClicked) {
+    const ids = currentList.map((e) => e.id);
+    const [i, j] = [ids.indexOf(lastClicked), ids.indexOf(id)].sort((x, y) => x - y);
+    if (!ev.ctrlKey && !ev.metaKey) selected.clear();
+    ids.slice(i, j + 1).forEach((x) => selected.add(x));
+  } else if (ev.ctrlKey || ev.metaKey) {
+    selected.has(id) ? selected.delete(id) : selected.add(id);
+    lastClicked = id;
+  } else {
+    selected = new Set([id]);
+    lastClicked = id;
+  }
+  renderListe();
 });
+$('#liste').addEventListener('dblclick', (ev) => {
+  const row = ev.target.closest('.row');
+  if (row && !ev.target.closest('select, input, button, form')) openViewer(data.elements.find((x) => x.id === row.dataset.id));
+});
+$('#sel-etat').addEventListener('change', (e) => { if (!e.target.value) return; selected.forEach((id) => change(id, { etat: e.target.value }, false)); e.target.value = ''; renderListe(); });
+$('#sel-prio').addEventListener('change', (e) => { if (e.target.value === '-') return; selected.forEach((id) => change(id, { priorite: e.target.value }, false)); e.target.value = '-'; renderListe(); });
+$('#sel-none').addEventListener('click', () => { selected.clear(); renderListe(); });
 $('#liste').addEventListener('submit', (ev) => {
   ev.preventDefault();
   const id = ev.target.dataset.id, input = ev.target.querySelector('input');
   if (!input.value.trim()) return;
-  const e = data.elements.find((x) => x.id === id);
-  const st = state(e);
+  const st = state(data.elements.find((x) => x.id === id));
   change(id, { commentaires: [...st.commentaires, { qui: who(), date: new Date().toISOString().slice(0, 10), texte: input.value.trim() }] });
 });
-['#f-dossier', '#f-etat', '#f-texte'].forEach((s) => $(s).addEventListener('input', () => { shown = 120; renderListe(); }));
+['#f-type', '#f-biome', '#f-etat', '#f-texte'].forEach((s) => $(s).addEventListener('input', () => { shown = 150; renderListe(); }));
+$('#tri').addEventListener('change', () => { store.set('atelier_tri', $('#tri').value); renderListe(); });
 
 $('#save').addEventListener('click', async () => {
   $('#save').disabled = true;
@@ -155,14 +206,71 @@ $('#save').addEventListener('click', async () => {
     const remote = cur ? JSON.parse(decodeURIComponent(escape(atob(cur.content.replace(/\n/g, ''))))) : {};
     for (const [id, st] of Object.entries(changed)) remote[id] = st;
     const n = Object.keys(changed).length;
-    const res = await put('_site/etats.json', utf8b64(JSON.stringify(remote, null, 1)), `États : ${n} élément(s) modifié(s) (${who()})`, cur && cur.sha);
-    etats = remote; etatsSha = res.content.sha; changed = {};
+    await put('_site/etats.json', utf8b64(JSON.stringify(remote, null, 1)), `États : ${n} élément(s) modifié(s) (${who()})`, cur && cur.sha);
+    etats = remote; changed = {};
     $('#g-msg').textContent = 'Enregistré.';
     renderListe();
   } catch (e) { $('#g-msg').textContent = 'Échec : ' + e.message; $('#g-msg').className = 'msg err'; }
   $('#save').disabled = false;
 });
 window.addEventListener('beforeunload', (e) => { if (Object.keys(changed).length) { e.preventDefault(); e.returnValue = ''; } });
+
+// ------------------------------------------------------------------ grande image (double-clic)
+const viewer = { el: null, img: null, meta: null, tag: null, playing: true, t: 0, last: 0, raf: 0 };
+async function openViewer(e) {
+  viewer.el = e; viewer.meta = null;
+  $('#v-name').textContent = e.element;
+  $('#v-info').textContent = `${e.type} · ${e.fichier}`;
+  $('#v-open').href = `rpgrogue://ouvrir?f=${encodeURIComponent(e.fichier)}&e=${encodeURIComponent(e.element)}`;
+  $('#v-tags').innerHTML = '';
+  $('#viewer').hidden = false;
+  const c = $('#v-canvas'); c.width = c.height = 0;
+  if (!e.anim) { $('#v-tags').textContent = 'Pas d\'image pour cet élément.'; return; }
+  try {
+    const [m, p] = await Promise.all([raw(`_site/anim/${e.n}.json`), raw(`_site/anim/${e.n}.png`)]);
+    viewer.meta = await m.json();
+    viewer.img = await createImageBitmap(await p.blob());
+  } catch (err) { $('#v-tags').textContent = 'Impossible de charger : ' + err.message; return; }
+  const tags = Object.keys(viewer.meta.tags);
+  viewer.tag = tags[0];
+  $('#v-tags').innerHTML = tags.map((t) => `<button class="chip${t === viewer.tag ? ' on' : ''}" data-tag="${t}">${t} <span class="muted">${viewer.meta.tags[t].length}</span></button>`).join('');
+  updateOpenLink();
+  viewer.t = 0; viewer.playing = true; $('#v-play').textContent = 'Pause';
+  cancelAnimationFrame(viewer.raf);
+  viewer.last = performance.now();
+  viewer.raf = requestAnimationFrame(drawViewer);
+}
+function updateOpenLink() {
+  const e = viewer.el;
+  $('#v-open').href = `rpgrogue://ouvrir?f=${encodeURIComponent(e.fichier)}&e=${encodeURIComponent(e.element)}&t=${encodeURIComponent(viewer.tag || '')}`;
+}
+function drawViewer(now) {
+  if ($('#viewer').hidden || !viewer.meta) return;
+  if (viewer.playing) viewer.t += now - viewer.last;
+  viewer.last = now;
+  const { w, h } = viewer.meta, frames = viewer.meta.tags[viewer.tag];
+  const total = frames.reduce((s, f) => s + Math.max(10, f[1]), 0);
+  let t = viewer.t % total, fr = frames[0];
+  for (const f of frames) { if (t < Math.max(10, f[1])) { fr = f; break; } t -= Math.max(10, f[1]); }
+  const box = $('.v-stage');
+  const z = +$('#v-zoom').value || Math.max(1, Math.min(8, Math.floor(Math.min((box.clientWidth - 20) / w, 420 / h))));
+  const c = $('#v-canvas');
+  if (c.width !== w * z || c.height !== h * z) { c.width = w * z; c.height = h * z; }
+  const g = c.getContext('2d');
+  g.imageSmoothingEnabled = false;
+  g.clearRect(0, 0, c.width, c.height);
+  g.drawImage(viewer.img, fr[0], 0, w, h, 0, 0, w * z, h * z);
+  viewer.raf = requestAnimationFrame(drawViewer);
+}
+$('#v-tags').addEventListener('click', (ev) => {
+  const b = ev.target.closest('[data-tag]'); if (!b) return;
+  viewer.tag = b.dataset.tag; viewer.t = 0; updateOpenLink();
+  document.querySelectorAll('#v-tags .chip').forEach((x) => x.classList.toggle('on', x === b));
+});
+$('#v-play').addEventListener('click', () => { viewer.playing = !viewer.playing; $('#v-play').textContent = viewer.playing ? 'Pause' : 'Lecture'; });
+$('#v-close').addEventListener('click', () => { $('#viewer').hidden = true; });
+$('#viewer').addEventListener('click', (e) => { if (e.target.id === 'viewer') $('#viewer').hidden = true; });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') $('#viewer').hidden = true; });
 
 // ------------------------------------------------------------------ références
 let refs = null, cat = '', urls = {};

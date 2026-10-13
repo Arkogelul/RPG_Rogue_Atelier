@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Atelier RPG Rogue</title>
-<link rel="stylesheet" href="style.css?v=2">
+<link rel="stylesheet" href="style.css?v=3">
 </head>
 <body>
 <header>
@@ -39,12 +39,29 @@
 
   <section id="graphismes" hidden>
     <div class="bar">
-      <select id="f-dossier"></select>
-      <select id="f-etat"></select>
+      <select id="f-type" aria-label="Type"></select>
+      <select id="f-biome" aria-label="Biome"></select>
+      <select id="f-etat" aria-label="État"></select>
       <input id="f-texte" type="search" placeholder="Chercher…">
-      <span id="compte" class="muted"></span>
+      <label class="muted">Trier par
+        <select id="tri">
+          <option value="type">type</option>
+          <option value="biome">biome</option>
+          <option value="date">date</option>
+          <option value="etat">état</option>
+          <option value="prio">priorité</option>
+          <option value="nom">nom</option>
+        </select>
+      </label>
       <button id="save" hidden>Enregistrer</button>
     </div>
+    <div id="selbar" class="bar selbar" hidden>
+      <b id="selcount"></b>
+      <select id="sel-etat" aria-label="État des éléments sélectionnés"></select>
+      <select id="sel-prio" aria-label="Priorité des éléments sélectionnés"></select>
+      <button id="sel-none" class="link">Tout désélectionner</button>
+    </div>
+    <p class="muted small"><span id="compte"></span> · clic : sélectionner (Ctrl : ajouter, Maj : plage) · double-clic : voir en grand</p>
     <p id="g-msg" class="msg"></p>
     <div id="liste"></div>
   </section>
@@ -87,6 +104,23 @@
   </section>
 </main>
 
+<div id="viewer" hidden>
+  <div class="v-box">
+    <div class="v-head">
+      <div><b id="v-name"></b> <span id="v-info" class="muted"></span></div>
+      <button id="v-close" class="link">Fermer</button>
+    </div>
+    <div class="v-stage"><canvas id="v-canvas"></canvas></div>
+    <div id="v-tags" class="chips"></div>
+    <div class="v-actions">
+      <button id="v-play">Pause</button>
+      <select id="v-zoom" aria-label="Zoom"><option value="0">zoom auto</option><option>1</option><option>2</option><option>3</option><option>4</option><option>6</option><option>8</option></select>
+      <a id="v-open" class="btn" href="#">Ouvrir dans Aseprite</a>
+    </div>
+    <p class="muted small">« Ouvrir dans Aseprite » demande l'aperçu 1.1 (ou plus) installé sur ce PC.</p>
+  </div>
+</div>
+
 <div id="lightbox" hidden>
   <img id="lb-img" alt="">
   <div class="lb-bar">
@@ -96,6 +130,6 @@
   </div>
 </div>
 
-<script src="app.js?v=2"></script>
+<script src="app.js?v=3"></script>
 </body>
 </html>
