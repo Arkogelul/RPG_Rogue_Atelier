@@ -136,12 +136,12 @@ function renderListe() {
   const html = list.slice(0, shown).map((e) => {
     const st = state(e);
     const n = st.comments.length;
-    const badges = (e.ctx && e.ctx !== 'interface' ? `<span class="badge">${e.ctx}</span>` : '') + (e.biome ? `<span class="badge">${biomeName(e.biome)}</span>` : '') + (e.edited ? `<span class="badge edited">edited ${e.edited}</span>` : '') + (unsent.has(e.file) ? `<span class="badge unsent" title="saved on this PC at ${unsent.get(e.file)}, not sent yet">not sent</span>` : '');
+    const badges = (e.ctx && e.ctx !== 'interface' ? `<span class="badge">${e.ctx}</span>` : '') + (e.biome ? `<span class="badge">${biomeName(e.biome)}</span>` : '') + (recent(e.edited) ? `<span class="badge edited" title="a new version of this image was sent on ${e.edited}">updated ${e.edited.slice(5)}</span>` : '') + (unsent.has(e.file) ? `<span class="badge unsent" title="saved on this PC at ${unsent.get(e.file)}, not sent yet">not sent</span>` : '');
     const comments = openComments === e.id ? `<div class="comments">${st.comments.map((c) => `<p><b>${QUI_EN[c.who] || c.who}</b> <span class="muted">${c.date}</span> — ${escapeHtml(c.text)}</p>`).join('')}
       <form data-id="${e.id}"><input placeholder="Comment…" aria-label="Comment"><button>Add</button></form></div>` : '';
     return `<div class="row ctx-${e.ctx || 'aucun'}${changed[e.id] ? ' changed' : ''}${selected.has(e.id) ? ' sel' : ''}" data-id="${e.id}">
       <div class="thumb" ${thumbStyle(e.v)}></div>
-      <div class="name"><b>${e.element}${badges}</b><small>${e.type} · ${e.file} · ${e.tags.length ? e.tags.length + ' animation' + (e.tags.length > 1 ? 's' : '') : 'still image'} · ${e.date || ''}</small></div>
+      <div class="name"><b>${e.element}${badges}</b><small>${e.type} · ${e.file} · ${e.tags.length ? e.tags.length + ' animation' + (e.tags.length > 1 ? 's' : '') : 'still image'} · ${e.edited ? 'updated ' + e.edited : e.date || ''}</small></div>
       <select class="etat e-${st.state.replace(' ', '')}" aria-label="State">${etatOpts(st.state)}</select>
       <select class="prio" aria-label="Priority">${PRIOS.map((x) => `<option value="${x}"${x === (st.priority || '') ? ' selected' : ''}>${x ? PRIO_EN[x] : 'priority'}</option>`).join('')}</select>
       <button class="com${n ? ' has' : ''}" title="Comments">${n || '+'}</button>${comments}</div>`;
@@ -160,6 +160,7 @@ function showSelection() {
   $('#sel-send').textContent = `Send selected (${selectedUnsent().length} file${selectedUnsent().length > 1 ? 's' : ''})`;
   $('#selcount').textContent = `${selected.size} selected`;
 }
+const recent = (d) => !!d && (Date.now() - new Date(d.replace(' ', 'T'))) < 7 * 864e5;
 const escapeHtml = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 function change(id, patch, render = true) {
