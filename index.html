@@ -2,207 +2,58 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Atelier RPG Rogue</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
-/* Mise en page : une colonne de lecture (~68 caractères), en-tête façon écran de jeu 384×216, étapes d'installation, puis références */
-:root {
-  --bg: #eef3ee;
-  --surface: #ffffff;
-  --ink: #17241d;
-  --muted: #55665c;
-  --line: #cfdcd2;
-  --grass: #2f9e68;
-  --grass-ink: #136640;
-  --screen: #12201a;
-  --screen-ink: #d9f2e2;
-  --warn: #9a5b00;
-  --warn-bg: #fff3dc;
-  --display: "Pixelify Sans", "Courier New", monospace;
-  --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
-  --mono: "IBM Plex Mono", Consolas, monospace;
-}
+:root { --bg: #f6f7f6; --fg: #1d2420; --muted: #5d6862; --line: #d6dcd8; --accent: #1f7a4d; }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #0f1713; --surface: #16211b; --ink: #e2efe6; --muted: #9db3a5; --line: #2a3a31;
-    --grass: #4cc48a; --grass-ink: #7fe0ae; --screen: #070d0a; --screen-ink: #d9f2e2;
-    --warn: #ffc76a; --warn-bg: #2d2311; color-scheme: dark;
-  }
+  :root { --bg: #151a17; --fg: #e3e9e5; --muted: #9aa69f; --line: #2c3530; --accent: #5cc48f; color-scheme: dark; }
 }
-:root[data-theme="dark"] {
-  --bg: #0f1713; --surface: #16211b; --ink: #e2efe6; --muted: #9db3a5; --line: #2a3a31;
-  --grass: #4cc48a; --grass-ink: #7fe0ae; --screen: #070d0a; --screen-ink: #d9f2e2;
-  --warn: #ffc76a; --warn-bg: #2d2311; color-scheme: dark;
-}
-* { box-sizing: border-box; }
-body { background: var(--bg); color: var(--ink); font: 400 16px/1.6 var(--body); }
-.page { max-width: 46rem; margin: 0 auto; padding-inline: 16px; padding-block: 28px 56px; display: grid; gap: 40px; }
-h1, h2, h3 { font-family: var(--display); font-weight: 700; line-height: 1.15; text-wrap: balance; margin: 0; }
-h1 { font-size: clamp(2rem, 6vw, 2.8rem); letter-spacing: .01em; }
-h2 { font-size: 1.5rem; }
-h3 { font-size: 1.1rem; }
-p { margin: 0; }
-a { color: var(--grass-ink); text-underline-offset: 3px; }
-a:focus-visible, button:focus-visible { outline: 3px solid var(--grass); outline-offset: 3px; border-radius: 4px; }
-code, kbd { font-family: var(--mono); font-size: .9em; }
-kbd { border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 .35em; background: var(--surface); white-space: nowrap; }
-.eyebrow { font: 500 .75rem/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
-section { display: grid; gap: 16px; }
-
-/* l'écran du jeu : 384×216, pixels nets */
-.screen {
-  background: var(--screen); color: var(--screen-ink); border-radius: 10px; padding: 22px 22px 18px;
-  display: grid; gap: 14px; position: relative; overflow: hidden;
-}
-.screen::after { /* lignes de la télé */
-  content: ""; position: absolute; inset: 0; pointer-events: none;
-  background: repeating-linear-gradient(to bottom, transparent 0 2px, rgba(0,0,0,.22) 2px 3px);
-}
-.screen .eyebrow { color: #8fc7a6; }
-.screen p { max-width: 36rem; color: #b9dcc6; }
-.minimap { display: flex; gap: 6px; flex-wrap: wrap; }
-.capsule { width: 48px; height: 42px; border-radius: 12px; border: 4px solid #4b2a2a; display: grid; place-items: center; image-rendering: pixelated; }
-.capsule span { width: 16px; height: 16px; box-shadow: 0 0 0 3px var(--h); background: var(--i); }
-.size { font: 500 .8rem/1 var(--mono); color: #8fc7a6; }
-
-.cta { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
-.button {
-  display: inline-flex; align-items: center; gap: 10px; text-decoration: none; font: 600 1rem/1 var(--body);
-  background: var(--grass); color: #06140d; padding: 14px 18px; border-radius: 8px; border: 2px solid var(--grass-ink);
-}
-.button:hover { filter: brightness(1.06); }
-.button small { font: 400 .8rem/1 var(--mono); opacity: .85; }
-.cta .secondary { color: var(--grass-ink); }
-
-.steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; counter-reset: step; }
-.steps li { counter-increment: step; display: grid; grid-template-columns: 2.2rem 1fr; gap: 12px; align-items: start; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px; }
-.steps li::before { content: counter(step); font: 700 1.2rem/2rem var(--display); text-align: center; color: var(--grass-ink); border: 2px solid var(--grass); border-radius: 6px; height: 2.1rem; }
-.steps li > div { min-width: 0; display: grid; gap: 6px; }
-.steps p { color: var(--muted); }
-
-.note { background: var(--warn-bg); color: var(--ink); border-left: 4px solid var(--warn); padding: 12px 14px; border-radius: 6px; display: grid; gap: 4px; }
-.note strong { color: var(--warn); }
-
-.table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
-table { border-collapse: collapse; width: 100%; font-size: .95rem; }
-th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
-th { font: 500 .75rem/1.2 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
-tr:last-child td { border-bottom: 0; }
-td:first-child { white-space: nowrap; }
-
-.versions { display: grid; gap: 10px; }
-.version { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; }
-.version b { font-family: var(--mono); color: var(--grass-ink); }
-.version p { grid-column: 2; color: var(--muted); }
-
-.soon { display: flex; flex-wrap: wrap; gap: 8px; }
-.chip { font: 500 .85rem/1 var(--body); border: 1px dashed var(--line); color: var(--muted); padding: 8px 10px; border-radius: 999px; }
-footer { color: var(--muted); font-size: .9rem; display: grid; gap: 4px; }
-@media (prefers-reduced-motion: no-preference) { .button { transition: filter .15s; } }
-
-body{margin:0}
+body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.55 "Segoe UI", system-ui, sans-serif; }
+main { max-width: 40rem; margin: 0 auto; padding: 24px 16px 40px; display: grid; gap: 22px; }
+h1 { font-size: 1.4rem; margin: 0; }
+h2 { font-size: 1rem; margin: 0 0 6px; }
+p, ol { margin: 0; }
+ol { padding-left: 1.2rem; display: grid; gap: 4px; }
+a { color: var(--accent); }
+.btn { display: inline-block; background: var(--accent); color: #fff; text-decoration: none; padding: 9px 14px; border-radius: 6px; font-weight: 600; }
+.muted { color: var(--muted); font-size: .9rem; }
+table { border-collapse: collapse; width: 100%; }
+td { padding: 4px 8px 4px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+td:first-child { white-space: nowrap; font-family: Consolas, monospace; }
 </style>
 </head>
 <body>
-<main class="page">
-  <header class="screen">
-    <span class="eyebrow">Atelier graphismes · RPG Rogue</span>
-    <h1>Aperçu en direct</h1>
-    <p>Une fenêtre pour ton 2e écran. Elle montre ce que tu peins dans Aseprite, à chaque coup de pinceau, avec le rendu du jeu : ombres, ordre d'affichage et télé cathodique.</p>
-    <div class="minimap" aria-hidden="true">
-      <div class="capsule" style="background:#2f9e68;--h:#38a878;--i:#7a4a2a"><span></span></div>
-      <div class="capsule" style="background:#f6e9a0;--h:#f8f8a8;--i:#c0392b"><span></span></div>
-      <div class="capsule" style="background:#d9dde0;--h:#f8f8f8;--i:#3b6fd1"><span></span></div>
-      <div class="capsule" style="background:#9c8a5a;--h:#b8a878;--i:#e2c84a"><span></span></div>
-    </div>
-    <span class="size">image du jeu : 384 × 216 px, cases de 16 px</span>
-  </header>
+<main>
+  <h1>Atelier RPG Rogue — aperçu en direct</h1>
 
-  <section aria-labelledby="installer">
-    <span class="eyebrow">Sur ce PC</span>
-    <h2 id="installer">Installer l'aperçu</h2>
-    <div class="cta">
-      <a class="button" href="https://github.com/Arkogelul/RPG_Rogue_Art/releases/latest/download/Installer_RPG_Rogue_Apercu.exe">
-        Télécharger l'installateur <small>.exe · 180 Ko</small>
-      </a>
-      <a class="secondary" href="https://github.com/Arkogelul/RPG_Rogue_Art/releases">Toutes les versions</a>
-    </div>
-    <p>Le lien passe par ton dépôt GitHub privé : connecte-toi à GitHub dans ce navigateur si le téléchargement affiche « Not Found ».</p>
-    <ol class="steps">
-      <li><div>
-        <h3>Lance l'installateur</h3>
-        <p>Il trouve Aseprite tout seul (version Steam ou installée), installe l'extension, l'aperçu (51 Mo, avec les données du jeu) et un raccourci « RPG Rogue Aperçu » sur le Bureau et dans le menu Démarrer.</p>
-      </div></li>
-      <li><div>
-        <h3>Connecte-le à GitHub, une seule fois</h3>
-        <p>Si GitHub CLI est déjà connecté sur ce PC, il s'en sert. Sinon, il te demande un jeton : clique sur son lien, choisis le dépôt <code>RPG_Rogue_Art</code>, permission <code>Contents : Read-only</code>, puis colle le jeton. Il est gardé chiffré sur ce PC.</p>
-      </div></li>
-      <li><div>
-        <h3>Relance Aseprite</h3>
-        <p>L'extension se charge au démarrage d'Aseprite. Elle se connecte toute seule à l'aperçu dès qu'il est ouvert.</p>
-      </div></li>
-      <li><div>
-        <h3>Ouvre « RPG Rogue Aperçu »</h3>
-        <p>Le raccourci vérifie s'il y a une nouvelle version, l'installe si besoin, puis ouvre la fenêtre. Mets-la sur ton 2e écran et passe en plein écran avec <kbd>F11</kbd>.</p>
-      </div></li>
+  <section>
+    <p><a class="btn" href="https://github.com/Arkogelul/RPG_Rogue_Art/releases/latest/download/Installer_RPG_Rogue_Apercu.exe">Télécharger l'installateur</a></p>
+    <p class="muted">Être connecté à GitHub (dépôt privé). <a href="https://github.com/Arkogelul/RPG_Rogue_Art/releases">Versions et nouveautés</a></p>
+  </section>
+
+  <section>
+    <h2>Installer sur un PC</h2>
+    <ol>
+      <li>Lancer l'installateur. Si Windows bloque : « Informations complémentaires » → « Exécuter quand même ».</li>
+      <li>S'il demande un jeton GitHub : suivre son lien (dépôt <code>RPG_Rogue_Art</code>, Contents : Read-only), coller le jeton.</li>
+      <li>Relancer Aseprite.</li>
+      <li>Ouvrir « RPG Rogue Aperçu » (Bureau). Il se met à jour tout seul.</li>
     </ol>
-    <div class="note" role="note">
-      <strong>Windows peut afficher « Windows a protégé votre ordinateur »</strong>
-      <p>L'installateur n'est pas signé. Clique sur « Informations complémentaires », puis sur « Exécuter quand même ».</p>
-    </div>
   </section>
 
-  <section aria-labelledby="touches">
-    <span class="eyebrow">Dans la fenêtre d'aperçu</span>
-    <h2 id="touches">Touches</h2>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>Touche</th><th>Action</th></tr></thead>
-        <tbody>
-          <tr><td><kbd>A</kbd> puis <kbd>Tab</kbd></td><td>Ajoute l'élément peint à une sélection, puis affiche la sélection : plusieurs monstres ou arbres de fichiers différents, côte à côte</td></tr>
-          <tr><td><kbd>R</kbd> · <kbd>X</kbd></td><td>Retire l'élément peint · vide la sélection</td></tr>
-          <tr><td><kbd>T</kbd> · <kbd>F</kbd></td><td>Fixe un autre tag · suit à nouveau le tag d'Aseprite</td></tr>
-          <tr><td><kbd>Espace</kbd> · <kbd>,</kbd> <kbd>.</kbd></td><td>Pause · image précédente / suivante</td></tr>
-          <tr><td><kbd>S</kbd></td><td>Vitesse 1, 1/2, 1/4</td></tr>
-          <tr><td><kbd>C</kbd></td><td>Télé cathodique on/off</td></tr>
-          <tr><td><kbd>G</kbd> · <kbd>O</kbd></td><td>Grille et collisions · ombres</td></tr>
-          <tr><td><kbd>B</kbd></td><td>Sol : herbe, sable, neige, marais, château, grotte, noir</td></tr>
-          <tr><td><kbd>+</kbd> <kbd>-</kbd></td><td>Zoom (garder 1 pour juger la télé : elle est réglée sur les pixels du jeu)</td></tr>
-          <tr><td><kbd>F11</kbd> · <kbd>F12</kbd></td><td>Plein écran · capture</td></tr>
-        </tbody>
-      </table>
-    </div>
+  <section>
+    <h2>Touches de l'aperçu</h2>
+    <table>
+      <tr><td>A · R · X · Tab</td><td>ajouter / retirer de la sélection, vider, afficher la sélection</td></tr>
+      <tr><td>T · F</td><td>fixer un tag · suivre Aseprite</td></tr>
+      <tr><td>Espace · , .</td><td>pause · image précédente / suivante</td></tr>
+      <tr><td>S</td><td>vitesse 1, 1/2, 1/4</td></tr>
+      <tr><td>C · G · O · B</td><td>télé · grille et collisions · ombres · sol</td></tr>
+      <tr><td>+ -</td><td>zoom (1 pour juger la télé)</td></tr>
+      <tr><td>F11 · F12</td><td>plein écran · capture</td></tr>
+    </table>
   </section>
-
-  <section aria-labelledby="nouveautes">
-    <span class="eyebrow">Versions</span>
-    <h2 id="nouveautes">Nouveautés</h2>
-    <div class="versions">
-      <div class="version"><b>1.0.0</b><span>13 octobre 2026</span>
-        <p>Galerie des éléments du fichier ouvert dans Aseprite, mise à jour à chaque coup de pinceau, avec le rendu du jeu. Sélection d'éléments de plusieurs fichiers.</p></div>
-    </div>
-    <p>Les mises à jour arrivent toutes seules par le raccourci. La liste à jour est sur <a href="https://github.com/Arkogelul/RPG_Rogue_Art/releases">la page des versions</a>.</p>
-  </section>
-
-  <section aria-labelledby="ensuite">
-    <span class="eyebrow">Prévu dans l'aperçu</span>
-    <h2 id="ensuite">Ensuite</h2>
-    <div class="soon">
-      <span class="chip">Biome : tes tuiles sur une vraie carte</span>
-      <span class="chip">Combat simulé</span>
-      <span class="chip">Parcours de démonstration par biome</span>
-      <span class="chip">Liste des graphismes et états</span>
-      <span class="chip">Discussion</span>
-    </div>
-  </section>
-
-  <footer>
-    <p>Graphismes : dépôt privé <a href="https://github.com/Arkogelul/RPG_Rogue_Art">Arkogelul/RPG_Rogue_Art</a>.</p>
-    <p>L'aperçu écoute sur ce PC uniquement (port <code>47800</code>) : rien ne sort sur Internet pendant que tu peins.</p>
-  </footer>
 </main>
 </body>
 </html>
