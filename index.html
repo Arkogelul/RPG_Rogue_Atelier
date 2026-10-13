@@ -4,46 +4,77 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Atelier RPG Rogue</title>
-<style>
-:root { --bg: #f6f7f6; --fg: #1d2420; --muted: #5d6862; --line: #d6dcd8; --accent: #1f7a4d; }
-@media (prefers-color-scheme: dark) {
-  :root { --bg: #151a17; --fg: #e3e9e5; --muted: #9aa69f; --line: #2c3530; --accent: #5cc48f; color-scheme: dark; }
-}
-body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.55 "Segoe UI", system-ui, sans-serif; }
-main { max-width: 40rem; margin: 0 auto; padding: 24px 16px 40px; display: grid; gap: 22px; }
-h1 { font-size: 1.4rem; margin: 0; }
-h2 { font-size: 1rem; margin: 0 0 6px; }
-p, ol { margin: 0; }
-ol { padding-left: 1.2rem; display: grid; gap: 4px; }
-a { color: var(--accent); }
-.btn { display: inline-block; background: var(--accent); color: #fff; text-decoration: none; padding: 9px 14px; border-radius: 6px; font-weight: 600; }
-.muted { color: var(--muted); font-size: .9rem; }
-table { border-collapse: collapse; width: 100%; }
-td { padding: 4px 8px 4px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
-td:first-child { white-space: nowrap; font-family: Consolas, monospace; }
-</style>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-<main>
-  <h1>Atelier RPG Rogue — aperçu en direct</h1>
+<header>
+  <strong>Atelier RPG Rogue</strong>
+  <nav>
+    <a href="#graphismes">Graphismes</a>
+    <a href="#references">Références</a>
+    <a href="#apercu">Aperçu</a>
+  </nav>
+  <select id="qui" aria-label="Qui travaille sur ce navigateur">
+    <option value="graphiste">je suis : graphiste</option>
+    <option value="programmeur">je suis : programmeur</option>
+  </select>
+  <button id="logout" class="link" hidden>Se déconnecter</button>
+</header>
 
-  <section>
-    <p><a class="btn" href="https://github.com/Arkogelul/RPG_Rogue_Art/releases/latest/download/Installer_RPG_Rogue_Apercu.exe">Télécharger l'installateur</a></p>
-    <p class="muted">Être connecté à GitHub (dépôt privé). <a href="https://github.com/Arkogelul/RPG_Rogue_Art/releases">Versions et nouveautés</a></p>
+<main>
+  <!-- connexion : les données sont dans le dépôt privé, rien n'est lisible sans clé -->
+  <section id="login" hidden>
+    <h1>Connexion</h1>
+    <p>Les graphismes et les références sont dans le dépôt privé <code>RPG_Rogue_Art</code>. Colle une clé GitHub (une fois par navigateur) :</p>
+    <ol>
+      <li><a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">Créer une clé</a> : Repository access → Only select repositories → <code>RPG_Rogue_Art</code>.</li>
+      <li>Permissions → Contents : <b>Read and write</b>. Generate token, puis copier.</li>
+    </ol>
+    <form id="login-form">
+      <input id="token" type="password" placeholder="github_pat_…" autocomplete="off">
+      <button type="submit">Se connecter</button>
+    </form>
+    <p id="login-msg" class="msg"></p>
   </section>
 
-  <section>
-    <h2>Installer sur un PC</h2>
+  <section id="graphismes" hidden>
+    <div class="bar">
+      <select id="f-dossier"></select>
+      <select id="f-etat"></select>
+      <input id="f-texte" type="search" placeholder="Chercher…">
+      <span id="compte" class="muted"></span>
+      <button id="save" hidden>Enregistrer</button>
+    </div>
+    <p id="g-msg" class="msg"></p>
+    <div id="liste"></div>
+  </section>
+
+  <section id="references" hidden>
+    <div class="bar">
+      <div id="cats" class="chips"></div>
+      <label class="upload">Ajouter des images
+        <input id="files" type="file" accept="image/*" multiple hidden>
+      </label>
+    </div>
+    <div id="drop" class="drop">
+      Déposer des images ici · catégorie :
+      <input id="cat-new" list="cat-list" placeholder="battle, monde…">
+      <datalist id="cat-list"></datalist>
+    </div>
+    <p id="r-msg" class="msg"></p>
+    <div id="galerie" class="masonry"></div>
+  </section>
+
+  <section id="apercu" hidden>
+    <h1>Aperçu en direct</h1>
+    <p><a class="btn" href="https://github.com/Arkogelul/RPG_Rogue_Art/releases/latest/download/Installer_RPG_Rogue_Apercu.exe">Télécharger l'installateur</a>
+       <a href="https://github.com/Arkogelul/RPG_Rogue_Art/releases">Versions</a></p>
     <ol>
       <li>Lancer l'installateur. Si Windows bloque : « Informations complémentaires » → « Exécuter quand même ».</li>
       <li>S'il demande un jeton GitHub : suivre son lien (dépôt <code>RPG_Rogue_Art</code>, Contents : Read-only), coller le jeton.</li>
       <li>Relancer Aseprite.</li>
       <li>Ouvrir « RPG Rogue Aperçu » (Bureau). Il se met à jour tout seul.</li>
     </ol>
-  </section>
-
-  <section>
-    <h2>Touches de l'aperçu</h2>
     <table>
       <tr><td>A · R · X · Tab</td><td>ajouter / retirer de la sélection, vider, afficher la sélection</td></tr>
       <tr><td>T · F</td><td>fixer un tag · suivre Aseprite</td></tr>
@@ -55,5 +86,16 @@ td:first-child { white-space: nowrap; font-family: Consolas, monospace; }
     </table>
   </section>
 </main>
+
+<div id="lightbox" hidden>
+  <img id="lb-img" alt="">
+  <div class="lb-bar">
+    <span id="lb-name"></span>
+    <button id="lb-del" class="danger">Supprimer</button>
+    <button id="lb-close">Fermer</button>
+  </div>
+</div>
+
+<script src="app.js"></script>
 </body>
 </html>
