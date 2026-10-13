@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Atelier RPG Rogue</title>
-<link rel="stylesheet" href="style.css?v=7">
+<link rel="stylesheet" href="style.css?v=8">
 </head>
 <body>
 <header>
@@ -54,11 +54,14 @@
         </select>
       </label>
       <button id="save" hidden>Save</button>
+      <button id="send-all" hidden>Send changes</button>
+      <span id="local-hint" class="muted small" hidden title="Sending from this page needs the launcher running on this PC (icon near the clock).">To send from here: open "RPG Rogue Preview" or "RPG Rogue Send art"</span>
     </div>
     <div id="selbar" class="bar selbar" hidden>
       <b id="selcount"></b>
       <select id="sel-etat" aria-label="State of the selected items"></select>
       <select id="sel-prio" aria-label="Priority of the selected items"></select>
+      <button id="sel-send" hidden>Send selected</button>
       <button id="sel-none" class="link">Clear selection</button>
     </div>
     <p class="muted small"><span id="compte"></span> · click: select (Ctrl: add, Shift: range) · double-click: open large view</p>
@@ -131,6 +134,6 @@
   </div>
 </div>
 
-<script src="app.js?v=7"></script>
+<script src="app.js?v=8"></script>
 </body>
 </html>

@@ -93,6 +93,7 @@ async function loadGraphismes() {
     $('#tri').value = store.get('atelier_tri') || 'type';
     $('#g-msg').textContent = '';
     renderListe();
+    pollLocal();
   } catch (e) { $('#g-msg').textContent = 'Could not load: ' + e.message; $('#g-msg').className = 'msg err'; }
 }
 
@@ -135,7 +136,7 @@ function renderListe() {
   const html = list.slice(0, shown).map((e) => {
     const st = state(e);
     const n = st.comments.length;
-    const badges = (e.ctx && e.ctx !== 'interface' ? `<span class="badge">${e.ctx}</span>` : '') + (e.biome ? `<span class="badge">${biomeName(e.biome)}</span>` : '') + (e.edited ? `<span class="badge edited">edited ${e.edited}</span>` : '');
+    const badges = (e.ctx && e.ctx !== 'interface' ? `<span class="badge">${e.ctx}</span>` : '') + (e.biome ? `<span class="badge">${biomeName(e.biome)}</span>` : '') + (e.edited ? `<span class="badge edited">edited ${e.edited}</span>` : '') + (unsent.has(e.file) ? `<span class="badge unsent" title="saved on this PC at ${unsent.get(e.file)}, not sent yet">not sent</span>` : '');
     const comments = openComments === e.id ? `<div class="comments">${st.comments.map((c) => `<p><b>${QUI_EN[c.who] || c.who}</b> <span class="muted">${c.date}</span> — ${escapeHtml(c.text)}</p>`).join('')}
       <form data-id="${e.id}"><input placeholder="Comment…" aria-label="Comment"><button>Add</button></form></div>` : '';
     return `<div class="row ctx-${e.ctx || 'aucun'}${changed[e.id] ? ' changed' : ''}${selected.has(e.id) ? ' sel' : ''}" data-id="${e.id}">
@@ -155,6 +156,8 @@ function renderListe() {
 function showSelection() {
   document.querySelectorAll('#liste .row').forEach((r) => r.classList.toggle('sel', selected.has(r.dataset.id)));
   $('#selbar').hidden = selected.size === 0;
+  $('#sel-send').hidden = !selectedUnsent().length;
+  $('#sel-send').textContent = `Send selected (${selectedUnsent().length} file${selectedUnsent().length > 1 ? 's' : ''})`;
   $('#selcount').textContent = `${selected.size} selected`;
 }
 const escapeHtml = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -199,6 +202,49 @@ $('#liste').addEventListener('dblclick', (ev) => {
 $('#sel-etat').addEventListener('change', (e) => { if (!e.target.value) return; selected.forEach((id) => change(id, { state: e.target.value }, false)); e.target.value = ''; renderListe(); });
 $('#sel-prio').addEventListener('change', (e) => { if (e.target.value === '-') return; selected.forEach((id) => change(id, { priority: e.target.value }, false)); e.target.value = '-'; renderListe(); });
 $('#sel-none').addEventListener('click', () => { selected.clear(); showSelection(); });
+
+// ------------------------------------------------------------------ envoi depuis la page (par le lanceur, sur ce PC)
+// Le lanceur (icône près de l'horloge) répond sur 127.0.0.1 : fichiers enregistrés mais pas envoyés, et « Send ».
+const LOCAL = 'http://127.0.0.1:47801';
+let local = null, unsent = new Map(), sending = false;
+function selectedUnsent() {
+  const files = new Set(data ? data.elements.filter((e) => selected.has(e.id)).map((e) => e.file) : []);
+  return [...files].filter((f) => unsent.has(f));
+}
+async function pollLocal() {
+  if (!data || $('#graphismes').hidden || sending) return;
+  let st = null;
+  try {
+    const ctl = new AbortController(); setTimeout(() => ctl.abort(), 1500);
+    st = await (await fetch(LOCAL + '/status', { signal: ctl.signal })).json();
+  } catch { st = null; }
+  local = st;
+  const next = new Map((st && st.changes || []).filter((c) => c.status !== 'deleted').map((c) => [c.file, c.when]));
+  const same = next.size === unsent.size && [...next].every(([k, v]) => unsent.get(k) === v);
+  unsent = next;
+  $('#local-hint').hidden = !!local;
+  $('#send-all').hidden = !unsent.size;
+  $('#send-all').textContent = `Send changes (${unsent.size} file${unsent.size > 1 ? 's' : ''})`;
+  if (!same) renderListe(); else showSelection();
+}
+async function sendFiles(files) {
+  if (!files.length || sending) return;
+  const message = prompt(`Send ${files.length} file(s)?\n${files.join('\n')}\n\nMessage for the coder (optional):`, '');
+  if (message === null) return;
+  sending = true;
+  $('#g-msg').className = 'msg'; $('#g-msg').textContent = 'Sending…';
+  try {
+    const r = await (await fetch(LOCAL + '/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ files, message }) })).json();
+    $('#g-msg').textContent = r.ok ? 'Sent. The list refreshes by itself in about a minute.' : 'Not sent: ' + r.log;
+    if (!r.ok) $('#g-msg').className = 'msg err';
+    if (r.ok) setTimeout(() => { data = null; loadGraphismes(); }, 75000);
+  } catch (e) { $('#g-msg').className = 'msg err'; $('#g-msg').textContent = 'Could not reach the launcher: ' + e.message; }
+  sending = false;
+  pollLocal();
+}
+$('#send-all').addEventListener('click', () => sendFiles([...unsent.keys()]));
+$('#sel-send').addEventListener('click', () => sendFiles(selectedUnsent()));
+setInterval(pollLocal, 5000);
 $('#liste').addEventListener('submit', (ev) => {
   ev.preventDefault();
   const id = ev.target.dataset.id, input = ev.target.querySelector('input');
