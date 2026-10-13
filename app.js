@@ -101,7 +101,7 @@ const byType = (a, b) => a.rt - b.rt || a.rb - b.rb || a.file.localeCompare(b.fi
 const SORTS = {
   type: byType,
   biome: (a, b) => a.rb - b.rb || byType(a, b),
-  date: (a, b) => (state(b).date || b.date || '').localeCompare(state(a).date || a.date || '') || byType(a, b),
+  date: (a, b) => (b.edited || b.date || '').localeCompare(a.edited || a.date || '') || byType(a, b),
   etat: (a, b) => ETAT_RANK[state(a).state] - ETAT_RANK[state(b).state] || byType(a, b),
   prio: (a, b) => PRIO_RANK[state(a).priority || ''] - PRIO_RANK[state(b).priority || ''] || byType(a, b),
   nom: (a, b) => a.element.localeCompare(b.element) || byType(a, b),
@@ -135,7 +135,7 @@ function renderListe() {
   const html = list.slice(0, shown).map((e) => {
     const st = state(e);
     const n = st.comments.length;
-    const badges = (e.ctx && e.ctx !== 'interface' ? `<span class="badge">${e.ctx}</span>` : '') + (e.biome ? `<span class="badge">${biomeName(e.biome)}</span>` : '');
+    const badges = (e.ctx && e.ctx !== 'interface' ? `<span class="badge">${e.ctx}</span>` : '') + (e.biome ? `<span class="badge">${biomeName(e.biome)}</span>` : '') + (e.edited ? `<span class="badge edited">edited ${e.edited}</span>` : '');
     const comments = openComments === e.id ? `<div class="comments">${st.comments.map((c) => `<p><b>${QUI_EN[c.who] || c.who}</b> <span class="muted">${c.date}</span> — ${escapeHtml(c.text)}</p>`).join('')}
       <form data-id="${e.id}"><input placeholder="Comment…" aria-label="Comment"><button>Add</button></form></div>` : '';
     return `<div class="row ctx-${e.ctx || 'aucun'}${changed[e.id] ? ' changed' : ''}${selected.has(e.id) ? ' sel' : ''}" data-id="${e.id}">
